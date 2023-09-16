@@ -1,1 +1,4 @@
-cache
+cache/
+/export.xlsx
+/ui_parts/resources/test.html
+.idea

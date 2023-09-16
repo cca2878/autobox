@@ -1,0 +1,9 @@
+<RCC>
+    <qresource prefix="/">
+        <file alias="test.html">resources/test.html</file>
+        <file alias="geetest.html">resources/geetest.html</file>
+        <file alias="assets/css/style.css">resources/assets/css/style.css</file>
+        <file alias="assets/js/gt.js">resources/assets/js/gt.js</file>
+        <file alias="assets/js/jquery.min.js">resources/assets/js/jquery.min.js</file>
+    </qresource>
+</RCC>
