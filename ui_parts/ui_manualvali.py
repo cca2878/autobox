@@ -12,6 +12,8 @@ from PySide6.QtCore import (QCoreApplication, QMetaObject, QSize)
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import (QDialogButtonBox,
                                QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout)
+
+
 # import validator_res_rc
 
 class Ui_MValiDialog(object):
@@ -41,7 +43,6 @@ class Ui_MValiDialog(object):
 
         self.horizontalLayout.addWidget(self.buttonBox)
 
-
         self.verticalLayout.addLayout(self.horizontalLayout)
 
         self.webEngineView = QWebEngineView(MValiDialog)
@@ -55,14 +56,13 @@ class Ui_MValiDialog(object):
 
         self.verticalLayout.addWidget(self.webEngineView)
 
-
         self.retranslateUi(MValiDialog)
 
         QMetaObject.connectSlotsByName(MValiDialog)
+
     # setupUi
 
     def retranslateUi(self, MValiDialog):
         MValiDialog.setWindowTitle(QCoreApplication.translate("MValiDialog", u"Manual Validate", None))
         self.label.setText(QCoreApplication.translate("MValiDialog", u"Please complete the validation in 120s!", None))
     # retranslateUi
-

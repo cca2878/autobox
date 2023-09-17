@@ -6,6 +6,7 @@ from .datamgr import datamgr
 from ..db.database import db
 from typing import Tuple, Union
 
+
 class pcrclient(apiclient):
     def __init__(self, platform, *args, **kwargs):
         super().__init__(platform)
