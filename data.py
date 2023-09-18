@@ -281,9 +281,9 @@ class ExcelExporter(object):
                 else:
                     temp_start_col = ws.max_column + 2
                     ws.column_dimensions[openpyxl.utils.get_column_letter(temp_start_col - 1)].width = 3
-                ws.merge_cells(start_row=1, end_row=1, start_column=temp_start_col,
+                ws.merge_cells(start_row=1, end_row=1, start_column=temp_start_col + 2,
                                end_column=temp_start_col + len(_unit_headers) - 1)
-                ws.cell(row=1, column=temp_start_col, value="-".join([str(item[0]), item[1].unit_name]))
+                ws.cell(row=1, column=temp_start_col + 2, value="-".join([str(item[0]), item[1].unit_name]))
                 self._1_data_index[item[0]] = {}
                 for j in range(len(_unit_headers)):
                     ws.cell(row=2, column=temp_start_col + j, value=_unit_headers[j][1])
