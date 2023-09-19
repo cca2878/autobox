@@ -45,7 +45,7 @@ class Ui_MainWindow(object):
         self.checkBoxExch.setGeometry(QRect(20, 50, 201, 20))
         self.btnEdit = QPushButton(self.groupBox)
         self.btnEdit.setObjectName(u"btnEdit")
-        self.btnEdit.setGeometry(QRect(210, 30, 91, 24))
+        self.btnEdit.setGeometry(QRect(190, 30, 91, 31))
         self.labelThreads = QLabel(self.groupBox)
         self.labelThreads.setObjectName(u"labelThreads")
         self.labelThreads.setGeometry(QRect(20, 20, 51, 21))
@@ -54,6 +54,9 @@ class Ui_MainWindow(object):
         self.spboxThNum.setGeometry(QRect(80, 20, 51, 22))
         self.spboxThNum.setMinimum(1)
         self.spboxThNum.setMaximum(8)
+        self.btnSelectU = QPushButton(self.groupBox)
+        self.btnSelectU.setObjectName(u"btnSelectU")
+        self.btnSelectU.setGeometry(QRect(290, 30, 75, 31))
 
         self.horizontalLayout.addWidget(self.groupBox)
 
@@ -118,6 +121,12 @@ class Ui_MainWindow(object):
         self.statusBar = QStatusBar(MainWindow)
         self.statusBar.setObjectName(u"statusBar")
         MainWindow.setStatusBar(self.statusBar)
+        QWidget.setTabOrder(self.spboxThNum, self.checkBoxExch)
+        QWidget.setTabOrder(self.checkBoxExch, self.btnEdit)
+        QWidget.setTabOrder(self.btnEdit, self.btnSelectU)
+        QWidget.setTabOrder(self.btnSelectU, self.tableWidget)
+        QWidget.setTabOrder(self.tableWidget, self.btnStart)
+        QWidget.setTabOrder(self.btnStart, self.btnOutput)
 
         self.retranslateUi(MainWindow)
 
@@ -131,16 +140,17 @@ class Ui_MainWindow(object):
         self.checkBoxExch.setText(QCoreApplication.translate("MainWindow", u"col&&line exchanged also", None))
         self.btnEdit.setText(QCoreApplication.translate("MainWindow", u"Edit accounts", None))
         self.labelThreads.setText(QCoreApplication.translate("MainWindow", u"Threads:", None))
+        self.btnSelectU.setText(QCoreApplication.translate("MainWindow", u"Select Units", None))
         self.btnStart.setText(QCoreApplication.translate("MainWindow", u"Start", None))
         self.btnOutput.setText(QCoreApplication.translate("MainWindow", u"Output", None))
         ___qtablewidgetitem = self.tableWidget.horizontalHeaderItem(0)
-        ___qtablewidgetitem.setText(QCoreApplication.translate("MainWindow", u"Index", None))
+        ___qtablewidgetitem.setText(QCoreApplication.translate("MainWindow", u"Index", None));
         ___qtablewidgetitem1 = self.tableWidget.horizontalHeaderItem(1)
-        ___qtablewidgetitem1.setText(QCoreApplication.translate("MainWindow", u"Username", None))
+        ___qtablewidgetitem1.setText(QCoreApplication.translate("MainWindow", u"Username", None));
         ___qtablewidgetitem2 = self.tableWidget.horizontalHeaderItem(2)
-        ___qtablewidgetitem2.setText(QCoreApplication.translate("MainWindow", u"Status", None))
+        ___qtablewidgetitem2.setText(QCoreApplication.translate("MainWindow", u"Status", None));
         ___qtablewidgetitem3 = self.tableWidget.horizontalHeaderItem(3)
-        ___qtablewidgetitem3.setText(QCoreApplication.translate("MainWindow", u"ManualVali", None))
+        ___qtablewidgetitem3.setText(QCoreApplication.translate("MainWindow", u"ManualVali", None));
         ___qtablewidgetitem4 = self.tableWidget.horizontalHeaderItem(4)
-        ___qtablewidgetitem4.setText(QCoreApplication.translate("MainWindow", u"LastTime", None))
+        ___qtablewidgetitem4.setText(QCoreApplication.translate("MainWindow", u"LastTime", None));
     # retranslateUi

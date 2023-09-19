@@ -24,9 +24,19 @@ class GameData(object):
 
     def __init__(self):
         self._love_story_dict = None
+        self._all_units_simple_dict = None
         if not self._inited:
             asyncio.get_event_loop().run_until_complete(dbstart.db_start())
             self._inited = True
+
+    @property
+    def all_units_simple_dict(self):
+        if not self._all_units_simple_dict:
+            temp_dict = {}
+            for k, v in database.db.unlock_unit_dict.items():
+                temp_dict[k] = v.unit_name
+            self._all_units_simple_dict = temp_dict
+        return self._all_units_simple_dict
 
     @property
     def all_units_dict(self):
@@ -243,6 +253,7 @@ class ExcelExporter(object):
         self._1_data_index = {}
         self._1_content_row = 3
         self._2_name = '行->角色'
+        self._selected_units = global_var.SELECTEDUNITS
         wb: Workbook = Workbook()
         wb.remove(wb['Sheet'])
         _alignment = Alignment(vertical='center')
@@ -275,7 +286,10 @@ class ExcelExporter(object):
                     cell: Cell = ws.cell(row=1, column=i + 1)
                     cell.alignment = _alignment
 
+            # 角色数据部分
             for i, item in enumerate(self._GameData.all_units_dict.items()):
+                if self._selected_units and item[0] not in self._selected_units:
+                    continue
                 if i == 0:  # 角色之间间隔一列，前间隔
                     temp_start_col = ws.max_column + 1
                 else:
@@ -360,6 +374,8 @@ class ExcelExporter(object):
                     else:
                         continue
                 for key, unit in user['user_units_data'].items():
+                    if key not in self._1_data_index.keys():
+                        continue
                     if unit is None:
                         for col in self._1_data_index[key].values():
                             ws.cell(row=row, column=col, value='未拥有')

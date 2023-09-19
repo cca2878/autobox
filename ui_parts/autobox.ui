@@ -71,10 +71,10 @@
                                     <widget class="QPushButton" name="btnEdit">
                                         <property name="geometry">
                                             <rect>
-                                                <x>210</x>
+                                                <x>190</x>
                                                 <y>30</y>
                                                 <width>91</width>
-                                                <height>24</height>
+                                                <height>31</height>
                                             </rect>
                                         </property>
                                         <property name="text">
@@ -108,6 +108,19 @@
                                         </property>
                                         <property name="maximum">
                                             <number>8</number>
+                                        </property>
+                                    </widget>
+                                    <widget class="QPushButton" name="btnSelectU">
+                                        <property name="geometry">
+                                            <rect>
+                                                <x>290</x>
+                                                <y>30</y>
+                                                <width>75</width>
+                                                <height>31</height>
+                                            </rect>
+                                        </property>
+                                        <property name="text">
+                                            <string>Select Units</string>
                                         </property>
                                     </widget>
                                 </widget>
@@ -222,6 +235,15 @@
         </widget>
         <widget class="QStatusBar" name="statusBar"/>
     </widget>
+    <tabstops>
+        <tabstop>spboxThNum</tabstop>
+        <tabstop>checkBoxExch</tabstop>
+        <tabstop>btnEdit</tabstop>
+        <tabstop>btnSelectU</tabstop>
+        <tabstop>tableWidget</tabstop>
+        <tabstop>btnStart</tabstop>
+        <tabstop>btnOutput</tabstop>
+    </tabstops>
     <resources/>
     <connections/>
 </ui>

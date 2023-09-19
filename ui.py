@@ -1,7 +1,4 @@
 # -*- coding: utf-8 -*-
-# import threading
-# from concurrent.futures import ThreadPoolExecutor
-# import asyncio
 import traceback
 
 # import os
@@ -9,16 +6,16 @@ from PySide6.QtCore import QUrl, Slot, Signal, Qt
 # from PySide6.QtGui import QBrush
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWidgets import QMainWindow, QDialog, QTableWidgetItem, QFileDialog, QPushButton, QWidget, \
-    QMessageBox
+    QMessageBox, QListWidget, QListWidgetItem
 
 import webbridge
-from data import ExcelExporter
+from data import ExcelExporter, gamedata
 from global_var import global_var
 from task import AsyncWorker
-# from pcrapi.bsdk.validator import validate_dict
 from ui_parts.ui_autobox import Ui_MainWindow
 from ui_parts.ui_edit import Ui_editDialog
 from ui_parts.ui_manualvali import Ui_MValiDialog
+from ui_parts.ui_selectunits import Ui_selectUnitDialog
 # noinspection PyUnresolvedReferences
 from ui_parts.validator_res_rc import *
 
@@ -37,6 +34,7 @@ class MainWindowUi(Ui_MainWindow, QMainWindow):
         self.btnStart.clicked.connect(self._start_tasks)
         self.btnEdit.clicked.connect(self._show_edit_dialog)
         self.btnOutput.clicked.connect(self._show_save_file_dialog)
+        self.btnSelectU.clicked.connect(self._show_select_units_dialog)
         self._load()
         self.show()
 
@@ -44,6 +42,11 @@ class MainWindowUi(Ui_MainWindow, QMainWindow):
         self._edit_dialog = EditDialogUi()
         self._edit_dialog.finished.connect(self._edit_dialog_finished)
         self._edit_dialog.show()
+
+    def _show_select_units_dialog(self):
+        self._selectU_dialog = SelectUnitsDialogUi()
+        # self._selectU_dialog.finished.connect(self._edit_dialog_finished)
+        self._selectU_dialog.show()
 
     def _show_save_file_dialog(self):
         file_dialog = QFileDialog(self)
@@ -179,7 +182,7 @@ class MainWindowUi(Ui_MainWindow, QMainWindow):
         # asyncio.run(obj.start(), debug=True)
 
 
-class EditDialogUi(QDialog, Ui_editDialog):
+class EditDialogUi(Ui_editDialog, QDialog):
     def __init__(self):
         super().__init__()
         self._accounts = {}
@@ -269,7 +272,7 @@ class EditDialogUi(QDialog, Ui_editDialog):
         return self._accounts
 
 
-class ManualValiDialogUi(QDialog, Ui_MValiDialog):
+class ManualValiDialogUi(Ui_MValiDialog, QDialog):
     vali_complete = Signal()
 
     def __init__(self, acc, url):
@@ -294,17 +297,17 @@ class ManualValiDialogUi(QDialog, Ui_MValiDialog):
         # self.webEngineView.page().webChannel().registerObject("dialog", self)
         # self.webEngineView.page().setWebChannel(self._channel)
 
-    def _load_test(self):
-        _base_url = QUrl("qrc:/")
-        self._web_bridge = webbridge.MyObject()
-        self._channel = QWebChannel()
-        self._channel.registerObject("myObject", self._web_bridge)
-        # self.webEngineView.page().setWebChannel(_channel)
-        # self.webEngineView.load(_base_url.resolved(QUrl(self._url)))
-        self.webEngineView.load(_base_url.resolved(QUrl('test.html')))
-        # self.webEngineView.load(QUrl(':/test.html'))
-        pass
-        self.webEngineView.page().setWebChannel(self._channel)
+    # def _load_test(self):
+    #     _base_url = QUrl("qrc:/")
+    #     self._web_bridge = webbridge.MyObject()
+    #     self._channel = QWebChannel()
+    #     self._channel.registerObject("myObject", self._web_bridge)
+    #     # self.webEngineView.page().setWebChannel(_channel)
+    #     # self.webEngineView.load(_base_url.resolved(QUrl(self._url)))
+    #     self.webEngineView.load(_base_url.resolved(QUrl('test.html')))
+    #     # self.webEngineView.load(QUrl(':/test.html'))
+    #     pass
+    #     self.webEngineView.page().setWebChannel(self._channel)
 
     def show(self) -> None:
         self._load()
@@ -317,6 +320,88 @@ class ManualValiDialogUi(QDialog, Ui_MValiDialog):
     def _discard(self):
         print("用户点击了放弃按钮")
         self.reject()
+
+
+class SelectUnitsDialogUi(Ui_selectUnitDialog, QDialog):
+    def __init__(self):
+        super().__init__()
+        self._game_data = gamedata
+        self._global_var = global_var
+        self.setupUi(self)
+        self._load_list_items()
+        self._connect_slot()
+
+    def _connect_slot(self):
+        self.buttonBox.accepted.connect(self._accepted)  # Accepted 按钮点击事件
+        self.buttonBox.rejected.connect(self._discard)  # Discard 按钮点击事件
+
+        self.btnS.clicked.connect(lambda: self._move_items(from_list_widget=self.listUnS, to_list_widget=self.listS))
+        self.btnSAll.clicked.connect(
+            lambda: self._move_items(from_list_widget=self.listUnS, to_list_widget=self.listS, is_all=True))
+        self.btnUnS.clicked.connect(lambda: self._move_items(from_list_widget=self.listS, to_list_widget=self.listUnS))
+        self.btnUnSAll.clicked.connect(
+            lambda: self._move_items(from_list_widget=self.listS, to_list_widget=self.listUnS, is_all=True))
+
+        self.editSchS.textChanged.connect(lambda: self._search(list_widget=self.listS, keyword=self.editSchS.text()))
+        self.editSchUnS.textChanged.connect(
+            lambda: self._search(list_widget=self.listUnS, keyword=self.editSchUnS.text()))
+
+    def _load_list_items(self):
+        all_units = self._game_data.all_units_simple_dict
+        selected_units = self._global_var.SELECTEDUNITS if self._global_var.SELECTEDUNITS else all_units.keys()
+        complement_keys = set(all_units.keys()) - set(selected_units)
+        for k in complement_keys:
+            item = UnitListItem((k, all_units[k]))
+            self.listUnS.addItem(item)
+            # self._unselected_items.add(item)
+        for k in selected_units:
+            item = UnitListItem((k, all_units[k]))
+            self.listS.addItem(item)
+            # self._selected_items.add(item)
+
+    @Slot()
+    def _accepted(self):
+        _units_selected = [self.listS.item(i).unit_id for i in range(self.listS.count())]
+        self._global_var.set_SELECTEDUNITS(_units_selected)
+        pass
+
+    @Slot()
+    def _discard(self):
+        print("用户点击了放弃按钮")
+        self.reject()
+
+    @Slot()
+    def _move_items(self, from_list_widget: QListWidget, to_list_widget: QListWidget, is_all: bool = False):
+        if is_all:
+            moving_items: list = [item for item in [from_list_widget.item(x) for x in range(from_list_widget.count())]
+                                  if not item.isHidden()]
+        else:
+            moving_items: list = [item for item in from_list_widget.selectedItems() if not item.isHidden()]
+
+        for item in moving_items:
+            # row = self.listS.row(item)
+            from_list_widget.takeItem(from_list_widget.row(item))
+            to_list_widget.addItem(item)
+
+        self._search(list_widget=to_list_widget, keyword='')
+
+    @Slot()
+    def _search(self, list_widget: QListWidget, keyword: str):
+        list_widget.clearSelection()
+        # for row in range(list_widget.count()):
+        #     item = list_widget.item(row)
+        for item in [list_widget.item(x) for x in range(list_widget.count())]:
+            item.setHidden(keyword not in item.text())
+
+
+class UnitListItem(QListWidgetItem):
+    def __init__(self, data: tuple):
+        """
+        Custom List Item
+        :param data: tuple, (unit_id, unit_name)
+        """
+        super().__init__(f'{data[0]}-{data[1]}')
+        self.unit_id = data[0]
 
 
 class ValidateBtn(QPushButton):
