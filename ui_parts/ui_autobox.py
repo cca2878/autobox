@@ -20,19 +20,13 @@ class Ui_MainWindow(object):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
         MainWindow.resize(570, 600)
-        MainWindow.setMinimumSize(QSize(570, 600))
-        MainWindow.setMaximumSize(QSize(570, 600))
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
-        self.verticalLayoutWidget = QWidget(self.centralwidget)
-        self.verticalLayoutWidget.setObjectName(u"verticalLayoutWidget")
-        self.verticalLayoutWidget.setGeometry(QRect(10, 5, 551, 571))
-        self.verticalLayout = QVBoxLayout(self.verticalLayoutWidget)
-        self.verticalLayout.setObjectName(u"verticalLayout")
-        self.verticalLayout.setContentsMargins(0, 0, 0, 0)
+        self.verticalLayout_3 = QVBoxLayout(self.centralwidget)
+        self.verticalLayout_3.setObjectName(u"verticalLayout_3")
         self.horizontalLayout = QHBoxLayout()
         self.horizontalLayout.setObjectName(u"horizontalLayout")
-        self.groupBox = QGroupBox(self.verticalLayoutWidget)
+        self.groupBox = QGroupBox(self.centralwidget)
         self.groupBox.setObjectName(u"groupBox")
         sizePolicy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
@@ -60,7 +54,7 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout.addWidget(self.groupBox)
 
-        self.verticalWidget_2 = QWidget(self.verticalLayoutWidget)
+        self.verticalWidget_2 = QWidget(self.centralwidget)
         self.verticalWidget_2.setObjectName(u"verticalWidget_2")
         sizePolicy1 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
         sizePolicy1.setHorizontalStretch(0)
@@ -71,20 +65,20 @@ class Ui_MainWindow(object):
         self.verticalLayout_2.setObjectName(u"verticalLayout_2")
         self.btnStart = QPushButton(self.verticalWidget_2)
         self.btnStart.setObjectName(u"btnStart")
+        self.btnStart.setFlat(False)
 
         self.verticalLayout_2.addWidget(self.btnStart)
 
         self.btnOutput = QPushButton(self.verticalWidget_2)
         self.btnOutput.setObjectName(u"btnOutput")
-        self.btnOutput.setMaximumSize(QSize(268, 16777215))
 
         self.verticalLayout_2.addWidget(self.btnOutput)
 
         self.horizontalLayout.addWidget(self.verticalWidget_2)
 
-        self.verticalLayout.addLayout(self.horizontalLayout)
+        self.verticalLayout_3.addLayout(self.horizontalLayout)
 
-        self.tableWidget = QTableWidget(self.verticalLayoutWidget)
+        self.tableWidget = QTableWidget(self.centralwidget)
         if (self.tableWidget.columnCount() < 5):
             self.tableWidget.setColumnCount(5)
         __qtablewidgetitem = QTableWidgetItem()
@@ -110,12 +104,14 @@ class Ui_MainWindow(object):
         self.tableWidget.setSelectionMode(QAbstractItemView.NoSelection)
         self.tableWidget.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.tableWidget.horizontalHeader().setVisible(True)
+        self.tableWidget.horizontalHeader().setCascadingSectionResizes(True)
         self.tableWidget.horizontalHeader().setHighlightSections(True)
+        self.tableWidget.horizontalHeader().setStretchLastSection(True)
         self.tableWidget.verticalHeader().setVisible(False)
         self.tableWidget.verticalHeader().setProperty("showSortIndicator", False)
         self.tableWidget.verticalHeader().setStretchLastSection(False)
 
-        self.verticalLayout.addWidget(self.tableWidget)
+        self.verticalLayout_3.addWidget(self.tableWidget)
 
         MainWindow.setCentralWidget(self.centralwidget)
         self.statusBar = QStatusBar(MainWindow)
@@ -124,8 +120,7 @@ class Ui_MainWindow(object):
         QWidget.setTabOrder(self.spboxThNum, self.checkBoxExch)
         QWidget.setTabOrder(self.checkBoxExch, self.btnEdit)
         QWidget.setTabOrder(self.btnEdit, self.btnSelectU)
-        QWidget.setTabOrder(self.btnSelectU, self.tableWidget)
-        QWidget.setTabOrder(self.tableWidget, self.btnStart)
+        QWidget.setTabOrder(self.btnSelectU, self.btnStart)
         QWidget.setTabOrder(self.btnStart, self.btnOutput)
 
         self.retranslateUi(MainWindow)
@@ -146,7 +141,7 @@ class Ui_MainWindow(object):
         ___qtablewidgetitem = self.tableWidget.horizontalHeaderItem(0)
         ___qtablewidgetitem.setText(QCoreApplication.translate("MainWindow", u"Index", None));
         ___qtablewidgetitem1 = self.tableWidget.horizontalHeaderItem(1)
-        ___qtablewidgetitem1.setText(QCoreApplication.translate("MainWindow", u"Username", None));
+        ___qtablewidgetitem1.setText(QCoreApplication.translate("MainWindow", u"Account", None));
         ___qtablewidgetitem2 = self.tableWidget.horizontalHeaderItem(2)
         ___qtablewidgetitem2.setText(QCoreApplication.translate("MainWindow", u"Status", None));
         ___qtablewidgetitem3 = self.tableWidget.horizontalHeaderItem(3)

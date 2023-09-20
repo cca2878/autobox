@@ -203,6 +203,7 @@ class Account(object):
         self._user_info = {
             'acc': self._account_data['username'],
             'name': self._client.name,
+            'alias': global_var.ACCOUNTS[global_var.ACCMAP[self._account_data['username']]][2],
             'id': str(self._client.viewer_id),
             'mana': self._client.data.gold.gold_id_free + self._client.data.gold.gold_id_pay,
             'jewel': self._client.data.jewel.free_jewel + self._client.data.jewel.jewel,
@@ -232,6 +233,7 @@ class ExcelExporter(object):
 
     def _init_template(self):
         _info_headers = [
+            ('alias', '昵称'),
             ('name', '用户名'),
             ('id', 'uid'),
             ('time', '更新时间'),
@@ -248,6 +250,7 @@ class ExcelExporter(object):
                          ('memory', '记忆碎片'),
                          # ('pure_memory', '纯净碎片')
                          ]
+        _nicknames = global_var.NICKNAMES
         self._1_name = '行->账号'
         self._1_info_index = {}
         self._1_data_index = {}
@@ -287,22 +290,35 @@ class ExcelExporter(object):
                     cell.alignment = _alignment
 
             # 角色数据部分
-            for i, item in enumerate(self._GameData.all_units_dict.items()):
-                if self._selected_units and item[0] not in self._selected_units:
-                    continue
-                if i == 0:  # 角色之间间隔一列，前间隔
+            def _init_unit(_i, _item):
+                # 获取区域&合并单元格
+                if _i == 0:  # 角色之间间隔一列，前间隔
                     temp_start_col = ws.max_column + 1
                 else:
                     temp_start_col = ws.max_column + 2
                     ws.column_dimensions[openpyxl.utils.get_column_letter(temp_start_col - 1)].width = 3
-                ws.merge_cells(start_row=1, end_row=1, start_column=temp_start_col + 2,
+                ws.merge_cells(start_row=1, end_row=1, start_column=temp_start_col + 1,
                                end_column=temp_start_col + len(_unit_headers) - 1)
-                ws.cell(row=1, column=temp_start_col + 2, value="-".join([str(item[0]), item[1].unit_name]))
-                self._1_data_index[item[0]] = {}
+                # 填入名称
+                if _nicknames and _item[0] in _nicknames.keys():
+                    ws.cell(row=1, column=temp_start_col + 1,
+                            value="-".join([str(_item[0]), str(_nicknames[_item[0]]), _item[1].unit_name]))
+                else:
+                    ws.cell(row=1, column=temp_start_col + 1, value="-".join([str(_item[0]), _item[1].unit_name]))
+                # 建立索引
+                self._1_data_index[_item[0]] = {}
                 for j in range(len(_unit_headers)):
                     ws.cell(row=2, column=temp_start_col + j, value=_unit_headers[j][1])
                     ws.column_dimensions[openpyxl.utils.get_column_letter(temp_start_col + j)].width = 11.5
-                    self._1_data_index[item[0]][_unit_headers[j][0]] = temp_start_col + j
+                    self._1_data_index[_item[0]][_unit_headers[j][0]] = temp_start_col + j
+
+            if not self._selected_units:
+                for i, item in enumerate(self._GameData.all_units_dict.items()):
+                    _init_unit(i, item)
+            else:
+                for i in range(len(self._selected_units)):
+                    unit_id = self._selected_units[i]
+                    _init_unit(i, (unit_id, self._GameData.all_units_dict[unit_id]))
 
         def _row_unit():
             ws = wb.create_sheet(title=self._2_name, index=1)
@@ -325,6 +341,7 @@ class ExcelExporter(object):
                 tmp_dict1: dict = user['user_info'].copy()
                 tmp_dict2: dict = user['user_units_data'].copy()
 
+                tmp_dict1['alias'] = tmp_dict1['alias'] if tmp_dict1['alias'] else tmp_dict1['name']
                 tmp_dict1['all_hearts'] = str(tmp_dict1['heart']) + '+' + str(tmp_dict1['heart_debris'])
                 tmp_dict1.pop('heart')
                 tmp_dict1.pop('heart_debris')

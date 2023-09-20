@@ -39,7 +39,17 @@
                                 </widget>
                             </item>
                             <item>
-                                <widget class="QListWidget" name="listUnS"/>
+                                <widget class="QListWidget" name="listUnS">
+                                    <property name="editTriggers">
+                                        <set>QAbstractItemView::NoEditTriggers</set>
+                                    </property>
+                                    <property name="selectionMode">
+                                        <enum>QAbstractItemView::ExtendedSelection</enum>
+                                    </property>
+                                    <property name="sortingEnabled">
+                                        <bool>true</bool>
+                                    </property>
+                                </widget>
                             </item>
                         </layout>
                     </item>
@@ -104,7 +114,17 @@
                                 </widget>
                             </item>
                             <item>
-                                <widget class="QListWidget" name="listS"/>
+                                <widget class="QListWidget" name="listS">
+                                    <property name="editTriggers">
+                                        <set>QAbstractItemView::NoEditTriggers</set>
+                                    </property>
+                                    <property name="dragDropMode">
+                                        <enum>QAbstractItemView::InternalMove</enum>
+                                    </property>
+                                    <property name="selectionMode">
+                                        <enum>QAbstractItemView::ExtendedSelection</enum>
+                                    </property>
+                                </widget>
                             </item>
                         </layout>
                     </item>
@@ -145,7 +165,7 @@
             <hints>
                 <hint type="sourcelabel">
                     <x>210</x>
-                    <y>381</y>
+                    <y>481</y>
                 </hint>
                 <hint type="destinationlabel">
                     <x>157</x>
@@ -161,7 +181,7 @@
             <hints>
                 <hint type="sourcelabel">
                     <x>210</x>
-                    <y>387</y>
+                    <y>487</y>
                 </hint>
                 <hint type="destinationlabel">
                     <x>219</x>

@@ -1,4 +1,5 @@
 import copy
+import json
 import os
 
 import msgpack
@@ -14,28 +15,39 @@ class StorageMgr(object):
         """
         持久化存储文件相关
         """
-        _dirname = 'cache/data'
-        self._suffix = '.mp'
-        self._path = os.path.join(MAIN_PATH, _dirname)
-        self._filenames = set([os.path.splitext(file)[0] for file in os.listdir(self._path) if
-                               os.path.isfile(os.path.join(self._path, file)) and file.endswith(self._suffix)])
+        _dirname = ['cache', 'data']
+        self._suffix = {'mp': '.mp', 'json': '.json'}
+        self._path = os.path.join(MAIN_PATH, *_dirname)
         if not os.path.exists(self._path):
             os.makedirs(self._path, exist_ok=True)
+        self._filenames = set([os.path.splitext(f)[0] for f in os.listdir(self._path) if
+                               os.path.isfile(os.path.join(self._path, f)) and f.endswith(
+                                   tuple(self._suffix.values()))])
 
-    def save(self, filename: str, data):
-        with open(os.path.join(self._path, f'{filename}{self._suffix}'), "wb") as f:
-            # pickle.dump(accounts, f)
-            f.write(msgpack.packb(data))
+    def save(self, filename: str, data, method: str = 'mp'):
+        if method not in self._suffix.keys():
+            raise ValueError
+        else:
+            with open(os.path.join(self._path, f'{filename}{self._suffix[method]}'), "wb") as f:
+                if method == 'mp':
+                    f.write(msgpack.packb(data))
+                elif method == 'json':
+                    f.write(json.dumps(data, ensure_ascii=False).encode("utf-8"))
         if filename not in self._filenames:
             self._filenames.add(filename)
 
-    def load(self, filename: str, default=None):
+    def load(self, filename: str, default=None, method: str = 'mp'):
+        if method not in self._suffix.keys():
+            raise ValueError
         if default is None:
             default = {}
         if filename in self._filenames:
             try:
-                with open(os.path.join(self._path, f'{filename}{self._suffix}'), "rb") as f:
-                    return msgpack.unpackb(f.read(), strict_map_key=False)
+                with open(os.path.join(self._path, f'{filename}{self._suffix[method]}'), "rb") as f:
+                    if method == 'mp':
+                        return msgpack.unpackb(f.read(), strict_map_key=False)
+                    elif method == 'json':
+                        return json.load(f)
             except FileNotFoundError:
                 return default
         else:
@@ -74,11 +86,17 @@ class GlobalVarMgr(object):
         self._acc_filename = 'accounts'
         self._rst_filename = 'results'
         self._selected_units_filename = 'selected_units'
+        self._nicknames_filename = 'nickname'
         # self._ACCOUNTS = self._storage_mgr.load_accounts()
         # self._RESULTS = self._storage_mgr.load_results()
+        self._load()
+
+    def _load(self):
         self._ACCOUNTS = self._storage_mgr.load(self._acc_filename)
         self._RESULTS = self._storage_mgr.load(self._rst_filename)
-        self._SELECTEDUNITS = self._storage_mgr.load(self._selected_units_filename, default=set())
+        self._SELECTEDUNITS = self._storage_mgr.load(self._selected_units_filename, default=set(), method='json')
+        _temp_dict = self._storage_mgr.load(self._nicknames_filename, method='json')
+        self._NICKNAMES = {int(key): value for key, value in _temp_dict.items()} if _temp_dict else _temp_dict
         self._ACCMAP = {}
         self._refresh_ACCMAP()
 
@@ -116,6 +134,15 @@ class GlobalVarMgr(object):
         #     self.set_SELECTEDUNITS(gamedata.all_units_simple_dict)
         return copy.deepcopy(self._SELECTEDUNITS)
 
+    @property
+    def NICKNAMES(self) -> dict:
+        """
+        获取NICKNAMES
+        :return: nicknames, dict, [unit_id: nickname]
+        """
+
+        return copy.deepcopy(self._NICKNAMES)
+
     def _refresh_ACCMAP(self):
         _tmp_dict = {}
         for key, value in self._ACCOUNTS.items():
@@ -149,7 +176,7 @@ class GlobalVarMgr(object):
     def set_SELECTEDUNITS(self, val):
         self._SELECTEDUNITS = copy.deepcopy(val)
         # self._storage_mgr.save_results()
-        self._storage_mgr.save(filename=self._selected_units_filename, data=self._SELECTEDUNITS)
+        self._storage_mgr.save(filename=self._selected_units_filename, data=self._SELECTEDUNITS, method='json')
 
     # def mod_result(self, key, val):
     #     if key in self._RESULTS:

@@ -10,228 +10,209 @@
                 <height>600</height>
             </rect>
         </property>
-        <property name="minimumSize">
-            <size>
-                <width>570</width>
-                <height>600</height>
-            </size>
-        </property>
-        <property name="maximumSize">
-            <size>
-                <width>570</width>
-                <height>600</height>
-            </size>
-        </property>
         <property name="windowTitle">
             <string>Autobox</string>
         </property>
         <widget class="QWidget" name="centralwidget">
-            <widget class="QWidget" name="verticalLayoutWidget">
-                <property name="geometry">
-                    <rect>
-                        <x>10</x>
-                        <y>5</y>
-                        <width>551</width>
-                        <height>571</height>
-                    </rect>
-                </property>
-                <layout class="QVBoxLayout" name="verticalLayout">
-                    <item>
-                        <layout class="QHBoxLayout" name="horizontalLayout">
-                            <item>
-                                <widget class="QGroupBox" name="groupBox">
-                                    <property name="sizePolicy">
-                                        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-                                            <horstretch>0</horstretch>
-                                            <verstretch>0</verstretch>
-                                        </sizepolicy>
+            <layout class="QVBoxLayout" name="verticalLayout_3">
+                <item>
+                    <layout class="QHBoxLayout" name="horizontalLayout">
+                        <item>
+                            <widget class="QGroupBox" name="groupBox">
+                                <property name="sizePolicy">
+                                    <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                                        <horstretch>0</horstretch>
+                                        <verstretch>0</verstretch>
+                                    </sizepolicy>
+                                </property>
+                                <property name="maximumSize">
+                                    <size>
+                                        <width>450</width>
+                                        <height>80</height>
+                                    </size>
+                                </property>
+                                <property name="title">
+                                    <string>Settings</string>
+                                </property>
+                                <widget class="QCheckBox" name="checkBoxExch">
+                                    <property name="geometry">
+                                        <rect>
+                                            <x>20</x>
+                                            <y>50</y>
+                                            <width>201</width>
+                                            <height>20</height>
+                                        </rect>
                                     </property>
-                                    <property name="maximumSize">
-                                        <size>
-                                            <width>450</width>
-                                            <height>80</height>
-                                        </size>
+                                    <property name="text">
+                                        <string>col&amp;&amp;line exchanged also</string>
                                     </property>
-                                    <property name="title">
-                                        <string>Settings</string>
-                                    </property>
-                                    <widget class="QCheckBox" name="checkBoxExch">
-                                        <property name="geometry">
-                                            <rect>
-                                                <x>20</x>
-                                                <y>50</y>
-                                                <width>201</width>
-                                                <height>20</height>
-                                            </rect>
-                                        </property>
-                                        <property name="text">
-                                            <string>col&amp;&amp;line exchanged also</string>
-                                        </property>
-                                    </widget>
-                                    <widget class="QPushButton" name="btnEdit">
-                                        <property name="geometry">
-                                            <rect>
-                                                <x>190</x>
-                                                <y>30</y>
-                                                <width>91</width>
-                                                <height>31</height>
-                                            </rect>
-                                        </property>
-                                        <property name="text">
-                                            <string>Edit accounts</string>
-                                        </property>
-                                    </widget>
-                                    <widget class="QLabel" name="labelThreads">
-                                        <property name="geometry">
-                                            <rect>
-                                                <x>20</x>
-                                                <y>20</y>
-                                                <width>51</width>
-                                                <height>21</height>
-                                            </rect>
-                                        </property>
-                                        <property name="text">
-                                            <string>Threads:</string>
-                                        </property>
-                                    </widget>
-                                    <widget class="QSpinBox" name="spboxThNum">
-                                        <property name="geometry">
-                                            <rect>
-                                                <x>80</x>
-                                                <y>20</y>
-                                                <width>51</width>
-                                                <height>22</height>
-                                            </rect>
-                                        </property>
-                                        <property name="minimum">
-                                            <number>1</number>
-                                        </property>
-                                        <property name="maximum">
-                                            <number>8</number>
-                                        </property>
-                                    </widget>
-                                    <widget class="QPushButton" name="btnSelectU">
-                                        <property name="geometry">
-                                            <rect>
-                                                <x>290</x>
-                                                <y>30</y>
-                                                <width>75</width>
-                                                <height>31</height>
-                                            </rect>
-                                        </property>
-                                        <property name="text">
-                                            <string>Select Units</string>
-                                        </property>
-                                    </widget>
                                 </widget>
-                            </item>
-                            <item>
-                                <widget class="QWidget" name="verticalWidget_2" native="true">
-                                    <property name="sizePolicy">
-                                        <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
-                                            <horstretch>0</horstretch>
-                                            <verstretch>0</verstretch>
-                                        </sizepolicy>
+                                <widget class="QPushButton" name="btnEdit">
+                                    <property name="geometry">
+                                        <rect>
+                                            <x>190</x>
+                                            <y>30</y>
+                                            <width>91</width>
+                                            <height>31</height>
+                                        </rect>
                                     </property>
-                                    <layout class="QVBoxLayout" name="verticalLayout_2">
-                                        <item>
-                                            <widget class="QPushButton" name="btnStart">
-                                                <property name="text">
-                                                    <string>Start</string>
-                                                </property>
-                                            </widget>
-                                        </item>
-                                        <item>
-                                            <widget class="QPushButton" name="btnOutput">
-                                                <property name="maximumSize">
-                                                    <size>
-                                                        <width>268</width>
-                                                        <height>16777215</height>
-                                                    </size>
-                                                </property>
-                                                <property name="text">
-                                                    <string>Output</string>
-                                                </property>
-                                            </widget>
-                                        </item>
-                                    </layout>
+                                    <property name="text">
+                                        <string>Edit accounts</string>
+                                    </property>
                                 </widget>
-                            </item>
-                        </layout>
-                    </item>
-                    <item>
-                        <widget class="QTableWidget" name="tableWidget">
-                            <property name="enabled">
-                                <bool>true</bool>
-                            </property>
-                            <property name="sizePolicy">
-                                <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
-                                    <horstretch>0</horstretch>
-                                    <verstretch>0</verstretch>
-                                </sizepolicy>
-                            </property>
-                            <property name="minimumSize">
-                                <size>
-                                    <width>0</width>
-                                    <height>470</height>
-                                </size>
-                            </property>
-                            <property name="editTriggers">
-                                <set>QAbstractItemView::NoEditTriggers</set>
-                            </property>
-                            <property name="showDropIndicator" stdset="0">
-                                <bool>false</bool>
-                            </property>
-                            <property name="selectionMode">
-                                <enum>QAbstractItemView::NoSelection</enum>
-                            </property>
-                            <property name="selectionBehavior">
-                                <enum>QAbstractItemView::SelectRows</enum>
-                            </property>
-                            <attribute name="horizontalHeaderVisible">
-                                <bool>true</bool>
-                            </attribute>
-                            <attribute name="horizontalHeaderHighlightSections">
-                                <bool>true</bool>
-                            </attribute>
-                            <attribute name="verticalHeaderVisible">
-                                <bool>false</bool>
-                            </attribute>
-                            <attribute name="verticalHeaderShowSortIndicator" stdset="0">
-                                <bool>false</bool>
-                            </attribute>
-                            <attribute name="verticalHeaderStretchLastSection">
-                                <bool>false</bool>
-                            </attribute>
-                            <column>
-                                <property name="text">
-                                    <string>Index</string>
+                                <widget class="QLabel" name="labelThreads">
+                                    <property name="geometry">
+                                        <rect>
+                                            <x>20</x>
+                                            <y>20</y>
+                                            <width>51</width>
+                                            <height>21</height>
+                                        </rect>
+                                    </property>
+                                    <property name="text">
+                                        <string>Threads:</string>
+                                    </property>
+                                </widget>
+                                <widget class="QSpinBox" name="spboxThNum">
+                                    <property name="geometry">
+                                        <rect>
+                                            <x>80</x>
+                                            <y>20</y>
+                                            <width>51</width>
+                                            <height>22</height>
+                                        </rect>
+                                    </property>
+                                    <property name="minimum">
+                                        <number>1</number>
+                                    </property>
+                                    <property name="maximum">
+                                        <number>8</number>
+                                    </property>
+                                </widget>
+                                <widget class="QPushButton" name="btnSelectU">
+                                    <property name="geometry">
+                                        <rect>
+                                            <x>290</x>
+                                            <y>30</y>
+                                            <width>75</width>
+                                            <height>31</height>
+                                        </rect>
+                                    </property>
+                                    <property name="text">
+                                        <string>Select Units</string>
+                                    </property>
+                                </widget>
+                            </widget>
+                        </item>
+                        <item>
+                            <widget class="QWidget" name="verticalWidget_2" native="true">
+                                <property name="sizePolicy">
+                                    <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+                                        <horstretch>0</horstretch>
+                                        <verstretch>0</verstretch>
+                                    </sizepolicy>
                                 </property>
-                            </column>
-                            <column>
-                                <property name="text">
-                                    <string>Username</string>
-                                </property>
-                            </column>
-                            <column>
-                                <property name="text">
-                                    <string>Status</string>
-                                </property>
-                            </column>
-                            <column>
-                                <property name="text">
-                                    <string>ManualVali</string>
-                                </property>
-                            </column>
-                            <column>
-                                <property name="text">
-                                    <string>LastTime</string>
-                                </property>
-                            </column>
-                        </widget>
-                    </item>
-                </layout>
-            </widget>
+                                <layout class="QVBoxLayout" name="verticalLayout_2">
+                                    <item>
+                                        <widget class="QPushButton" name="btnStart">
+                                            <property name="text">
+                                                <string>Start</string>
+                                            </property>
+                                            <property name="flat">
+                                                <bool>false</bool>
+                                            </property>
+                                        </widget>
+                                    </item>
+                                    <item>
+                                        <widget class="QPushButton" name="btnOutput">
+                                            <property name="text">
+                                                <string>Output</string>
+                                            </property>
+                                        </widget>
+                                    </item>
+                                </layout>
+                            </widget>
+                        </item>
+                    </layout>
+                </item>
+                <item>
+                    <widget class="QTableWidget" name="tableWidget">
+                        <property name="enabled">
+                            <bool>true</bool>
+                        </property>
+                        <property name="sizePolicy">
+                            <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+                                <horstretch>0</horstretch>
+                                <verstretch>0</verstretch>
+                            </sizepolicy>
+                        </property>
+                        <property name="minimumSize">
+                            <size>
+                                <width>0</width>
+                                <height>470</height>
+                            </size>
+                        </property>
+                        <property name="editTriggers">
+                            <set>QAbstractItemView::NoEditTriggers</set>
+                        </property>
+                        <property name="showDropIndicator" stdset="0">
+                            <bool>false</bool>
+                        </property>
+                        <property name="selectionMode">
+                            <enum>QAbstractItemView::NoSelection</enum>
+                        </property>
+                        <property name="selectionBehavior">
+                            <enum>QAbstractItemView::SelectRows</enum>
+                        </property>
+                        <attribute name="horizontalHeaderVisible">
+                            <bool>true</bool>
+                        </attribute>
+                        <attribute name="horizontalHeaderCascadingSectionResizes">
+                            <bool>true</bool>
+                        </attribute>
+                        <attribute name="horizontalHeaderHighlightSections">
+                            <bool>true</bool>
+                        </attribute>
+                        <attribute name="horizontalHeaderStretchLastSection">
+                            <bool>true</bool>
+                        </attribute>
+                        <attribute name="verticalHeaderVisible">
+                            <bool>false</bool>
+                        </attribute>
+                        <attribute name="verticalHeaderShowSortIndicator" stdset="0">
+                            <bool>false</bool>
+                        </attribute>
+                        <attribute name="verticalHeaderStretchLastSection">
+                            <bool>false</bool>
+                        </attribute>
+                        <column>
+                            <property name="text">
+                                <string>Index</string>
+                            </property>
+                        </column>
+                        <column>
+                            <property name="text">
+                                <string>Account</string>
+                            </property>
+                        </column>
+                        <column>
+                            <property name="text">
+                                <string>Status</string>
+                            </property>
+                        </column>
+                        <column>
+                            <property name="text">
+                                <string>ManualVali</string>
+                            </property>
+                        </column>
+                        <column>
+                            <property name="text">
+                                <string>LastTime</string>
+                            </property>
+                        </column>
+                    </widget>
+                </item>
+            </layout>
         </widget>
         <widget class="QStatusBar" name="statusBar"/>
     </widget>
@@ -240,7 +221,6 @@
         <tabstop>checkBoxExch</tabstop>
         <tabstop>btnEdit</tabstop>
         <tabstop>btnSelectU</tabstop>
-        <tabstop>tableWidget</tabstop>
         <tabstop>btnStart</tabstop>
         <tabstop>btnOutput</tabstop>
     </tabstops>

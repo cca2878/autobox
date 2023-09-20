@@ -6,7 +6,7 @@ from PySide6.QtCore import QUrl, Slot, Signal, Qt
 # from PySide6.QtGui import QBrush
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWidgets import QMainWindow, QDialog, QTableWidgetItem, QFileDialog, QPushButton, QWidget, \
-    QMessageBox, QListWidget, QListWidgetItem
+    QMessageBox, QListWidget, QListWidgetItem, QHeaderView
 
 import webbridge
 from data import ExcelExporter, gamedata
@@ -27,10 +27,10 @@ class MainWindowUi(Ui_MainWindow, QMainWindow):
         self._exporter = ExcelExporter()
         self.setupUi(self)
         self.statusBar.showMessage('Ready.')
-        if not global_var.ACCOUNTS:
-            self.btnStart.setEnabled(False)
-        if not global_var.RESULTS:
-            self.btnOutput.setEnabled(False)
+        # if not global_var.ACCOUNTS:
+        #     self.btnStart.setEnabled(False)
+        # if not global_var.RESULTS:
+        #     self.btnOutput.setEnabled(False)
         self.btnStart.clicked.connect(self._start_tasks)
         self.btnEdit.clicked.connect(self._show_edit_dialog)
         self.btnOutput.clicked.connect(self._show_save_file_dialog)
@@ -98,6 +98,10 @@ class MainWindowUi(Ui_MainWindow, QMainWindow):
         # self._load()
 
     def _load(self):
+        if not global_var.ACCOUNTS:
+            self.btnStart.setEnabled(False)
+        if not global_var.RESULTS:
+            self.btnOutput.setEnabled(False)
         self.tableWidget.setRowCount(0)
         self._buttons = {}
 
@@ -107,7 +111,13 @@ class MainWindowUi(Ui_MainWindow, QMainWindow):
             for key in accounts:
                 if accounts[key]:
                     index_item = QTableWidgetItem(str(key + 1))
-                    acc = accounts[key][0]
+                    if len(accounts[key]) > 2:
+                        if accounts[key][2]:
+                            acc = f'{accounts[key][2]}({accounts[key][0]})'
+                        else:
+                            acc = accounts[key][0]
+                    else:
+                        acc = accounts[key][0]
                     username_item = QTableWidgetItem(str(acc))
                     status_item = QTableWidgetItem('Waiting…')
                     time_item = QTableWidgetItem(str(results[key]['time'] if key in results else ''))
@@ -120,6 +130,7 @@ class MainWindowUi(Ui_MainWindow, QMainWindow):
                     self._buttons[acc] = ValidateBtn(acc=acc)
                     self.tableWidget.setCellWidget(key, self._col_idx['manual_vali'], self._buttons[acc])
 
+        self.tableWidget.horizontalHeader().setSectionResizeMode(self._col_idx['index'], QHeaderView.ResizeToContents)
         _add_table_item()
 
     @Slot(tuple)
@@ -190,47 +201,57 @@ class EditDialogUi(Ui_editDialog, QDialog):
         self._load()
         self.btnAdd.clicked.connect(self._add_account)
         self.btnRm.clicked.connect(self._remove_account)
-        self.btnSvts.clicked.connect(self._save_account)
-        self.tableWidget.cellClicked.connect(self._update_input)
+        # self.btnSvts.clicked.connect(self._save_account)
+        # self.tableWidget.cellClicked.connect(self._update_input)
         self.buttonBox.rejected.connect(self._discard)  # Discard 按钮点击事件
         self.buttonBox.accepted.connect(self._save)  # Save 按钮点击事件
 
     def _add_account(self):
-        username_item = QTableWidgetItem(str(self.inputUn.text()))
-        password_item = QTableWidgetItem(str(self.inputPw.text()))
+        # username_item = QTableWidgetItem(str(self.inputUn.text()))
+        # password_item = QTableWidgetItem(str(self.inputPw.text()))
         row_position = self.tableWidget.rowCount()  # 获取当前行数
         self.tableWidget.insertRow(row_position)  # 插入新行
-        self.tableWidget.setItem(row_position, 0, username_item)
-        self.tableWidget.setItem(row_position, 1, password_item)
+        self.tableWidget.setItem(row_position, 2, QTableWidgetItem())
+        # self.tableWidget.setItem(row_position, 1, password_item)
         self.tableWidget.setCurrentCell(row_position, 0)
-        self.inputUn.setText('')
-        self.inputPw.setText('')
+        # self.inputUn.setText('')
+        # self.inputPw.setText('')
 
     def _remove_account(self):
-        selected_items = self.tableWidget.selectedItems()
-        if selected_items:
-            self.tableWidget.removeRow(self.tableWidget.selectedItems()[0].row())
-        else:
-            pass
+        # selected_items = self.tableWidget.selectedItems()
+        selected_ranges = self.tableWidget.selectedRanges()
+        if selected_ranges:
+            selected_items = []
+            for item in selected_ranges:
+                for i in range(item.topRow(), item.bottomRow() + 1):
+                    selected_items.append(self.tableWidget.item(i, 2))
 
-    def _update_input(self):
-        selected_items = self.tableWidget.selectedItems()
-        if selected_items:
-            username = selected_items[0].text()
-            password = selected_items[1].text()
-            self.inputUn.setText(username)
-            self.inputPw.setText(password)
-        else:
-            self.inputUn.setText("")
-            self.inputPw.setText("")
+            for item in selected_items:
+                self.tableWidget.removeRow(item.row())
 
-    def _save_account(self):
-        if self.tableWidget.selectedItems():
-            username_item = QTableWidgetItem(str(self.inputUn.text()))
-            password_item = QTableWidgetItem(str(self.inputPw.text()))
-            row_position = self.tableWidget.selectedItems()[0].row()  # 获取当前行数
-            self.tableWidget.setItem(row_position, 0, username_item)
-            self.tableWidget.setItem(row_position, 1, password_item)
+        # if selected_items:
+        #     self.tableWidget.removeRow(self.tableWidget.selectedItems()[0].row())
+        # else:
+        #     pass
+
+    # def _update_input(self):
+    #     selected_items = self.tableWidget.selectedItems()
+    #     if selected_items:
+    #         username = selected_items[0].text()
+    #         password = selected_items[1].text()
+    #         self.inputUn.setText(username)
+    #         self.inputPw.setText(password)
+    #     else:
+    #         self.inputUn.setText("")
+    #         self.inputPw.setText("")
+
+    # def _save_account(self):
+    #     if self.tableWidget.selectedItems():
+    #         username_item = QTableWidgetItem(str(self.inputUn.text()))
+    #         password_item = QTableWidgetItem(str(self.inputPw.text()))
+    #         row_position = self.tableWidget.selectedItems()[0].row()  # 获取当前行数
+    #         self.tableWidget.setItem(row_position, 0, username_item)
+    #         self.tableWidget.setItem(row_position, 1, password_item)
 
     def _save(self):
         # cell_contents = []
@@ -241,13 +262,13 @@ class EditDialogUi(Ui_editDialog, QDialog):
             temp_list = []
             for col in range(self.tableWidget.columnCount()):
                 item = self.tableWidget.item(row, col)
-                if item is not None and item.text() != '':
+                if item and (item.text() != '' or col > 1):
                     temp_list.append(item.text())
                 else:
                     break
             else:
-                index += 1
                 if temp_list[0] not in temp_set:
+                    index += 1
                     temp_set.add(temp_list[0])
                     temp_dict[index] = temp_list
                 # temp_dict[index] = temp_list
@@ -260,9 +281,12 @@ class EditDialogUi(Ui_editDialog, QDialog):
             if global_var.ACCOUNTS[key]:
                 username_item = QTableWidgetItem(str(global_var.ACCOUNTS[key][0]))
                 password_item = QTableWidgetItem(str(global_var.ACCOUNTS[key][1]))
+                alias_item = QTableWidgetItem(str(global_var.ACCOUNTS[key][2]
+                                                  if len(global_var.ACCOUNTS[key]) >= 3 else ''))
                 self.tableWidget.insertRow(key)
                 self.tableWidget.setItem(key, 0, username_item)
                 self.tableWidget.setItem(key, 1, password_item)
+                self.tableWidget.setItem(key, 2, alias_item)
 
     def _discard(self):
         print("用户点击了放弃按钮")
@@ -347,15 +371,20 @@ class SelectUnitsDialogUi(Ui_selectUnitDialog, QDialog):
             lambda: self._search(list_widget=self.listUnS, keyword=self.editSchUnS.text()))
 
     def _load_list_items(self):
+        _nicknames = self._global_var.NICKNAMES
         all_units = self._game_data.all_units_simple_dict
         selected_units = self._global_var.SELECTEDUNITS if self._global_var.SELECTEDUNITS else all_units.keys()
         complement_keys = set(all_units.keys()) - set(selected_units)
         for k in complement_keys:
-            item = UnitListItem((k, all_units[k]))
+            item = UnitListItem((k, _nicknames[k], all_units[k])) if k in _nicknames.keys() else UnitListItem(
+                (k, all_units[k]))
+            item.setFlags(item.flags() | Qt.ItemIsDragEnabled)
             self.listUnS.addItem(item)
             # self._unselected_items.add(item)
         for k in selected_units:
-            item = UnitListItem((k, all_units[k]))
+            item = UnitListItem((k, _nicknames[k], all_units[k])) if k in _nicknames.keys() else UnitListItem(
+                (k, all_units[k]))
+            item.setFlags(item.flags() | Qt.ItemIsDragEnabled)
             self.listS.addItem(item)
             # self._selected_items.add(item)
 
@@ -400,7 +429,7 @@ class UnitListItem(QListWidgetItem):
         Custom List Item
         :param data: tuple, (unit_id, unit_name)
         """
-        super().__init__(f'{data[0]}-{data[1]}')
+        super().__init__("-".join(map(str, data)))
         self.unit_id = data[0]
 
 

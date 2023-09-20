@@ -9,10 +9,8 @@
 ################################################################################
 
 from PySide6.QtCore import (QCoreApplication, QMetaObject, Qt)
-from PySide6.QtWidgets import (QDialogButtonBox,
-                               QHBoxLayout, QLabel, QLineEdit, QListWidget,
-                               QPushButton, QVBoxLayout,
-                               QWidget)
+from PySide6.QtWidgets import (QAbstractItemView, QDialogButtonBox, QHBoxLayout, QLabel, QLineEdit,
+                               QListWidget, QPushButton, QVBoxLayout, QWidget)
 
 
 class Ui_selectUnitDialog(object):
@@ -40,6 +38,9 @@ class Ui_selectUnitDialog(object):
 
         self.listUnS = QListWidget(selectUnitDialog)
         self.listUnS.setObjectName(u"listUnS")
+        self.listUnS.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.listUnS.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.listUnS.setSortingEnabled(True)
 
         self.vlayUnS.addWidget(self.listUnS)
 
@@ -83,6 +84,9 @@ class Ui_selectUnitDialog(object):
 
         self.listS = QListWidget(selectUnitDialog)
         self.listS.setObjectName(u"listS")
+        self.listS.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.listS.setDragDropMode(QAbstractItemView.InternalMove)
+        self.listS.setSelectionMode(QAbstractItemView.ExtendedSelection)
 
         self.vlayS.addWidget(self.listS)
 
