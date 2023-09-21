@@ -127,8 +127,8 @@ class MainWindowUi(Ui_MainWindow, QMainWindow):
                     self.tableWidget.setItem(key, self._col_idx['username'], username_item)
                     self.tableWidget.setItem(key, self._col_idx['status'], status_item)
                     self.tableWidget.setItem(key, self._col_idx['last_time'], time_item)
-                    self._buttons[acc] = ValidateBtn(acc=acc)
-                    self.tableWidget.setCellWidget(key, self._col_idx['manual_vali'], self._buttons[acc])
+                    self._buttons[accounts[key][0]] = ValidateBtn(acc=accounts[key][0])
+                    self.tableWidget.setCellWidget(key, self._col_idx['manual_vali'], self._buttons[accounts[key][0]])
 
         self.tableWidget.horizontalHeader().setSectionResizeMode(self._col_idx['index'], QHeaderView.ResizeToContents)
         _add_table_item()
