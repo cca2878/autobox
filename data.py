@@ -43,6 +43,10 @@ class GameData(object):
         return database.db.unlock_unit_dict
 
     @property
+    def unit_data_dict(self):
+        return database.db.unit_data
+
+    @property
     def pure_memory_to_unit_dict(self):
         return database.db.pure_memory_to_unit
 
@@ -154,9 +158,20 @@ class Account(object):
         # 'key' is unit_id
         for key in _all_units_dict.keys():
             if _origin_data.get(key, None) is None:
-                _new_data[key] = None
+                _new_data[key] = {
+                    'is_owned': False,
+                    'status': '',
+                    'star': self._game_data.unit_data_dict[key].rarity,
+                    'memory': self._client.data.get_inventory(
+                        (enums.eInventoryType.Item, 30000 + (key // 100))),
+                    'pure_memory': self._client.data.get_inventory(
+                        (enums.eInventoryType.Item, 31000 + (key // 100)))
+                    if key in self._game_data.pure_memory_to_unit_dict.values() else None
+                }
             else:
-                _new_data[key] = {  # 'name': _all_units_dict[key].unit_name,
+                _new_data[key] = {
+                    'is_owned': True,
+                    'status': '',
                     'star': _origin_data[key].unit_rarity,
                     'rank': _origin_data[key].promotion_level.value,
                     'level': _origin_data[key].unit_level,
@@ -220,7 +235,6 @@ class ExcelExporter(object):
         """
         导出Excel表格
         :param mode: Int, 0,1,2。0为双格式，1为仅行账号，2为仅行角色
-        :param data: Dict,Account.user_data_sum的字典列表，{idx->int: sum->dict}，成员数任意
         """
         # self._data: Dict[int, dict] = copy.deepcopy(data)
         self._pre_processed = False
@@ -244,7 +258,7 @@ class ExcelExporter(object):
             ('all_hearts', '整心+心碎数'),  # 整心+心碎
             ('master_coin', '大师币数'),  # 大师币
         ]
-        _unit_headers = [('star', '最高星级'), ('level', '等级'), ('rank', 'RANK'), ('equip', '装备'),
+        _unit_headers = [('status', '状态'), ('level', '等级'), ('rank', 'RANK'), ('equip', '装备'),
                          ('ub_level', 'UB'), ('sk1_level', 'sk1'), ('sk2_level', 'sk2'),
                          ('skex_level', 'skex'), ('unique_equip', '专武'), ('love_story', '好感等级'),
                          ('memory', '记忆碎片'),
@@ -337,20 +351,37 @@ class ExcelExporter(object):
     def preprocess_data(self, force: bool = False):
         if force or (not self._pre_processed):
             self._data = global_var.RESULTS
+            mem_list = [15, 30, 100, 120, 150, 50]
             for user in self._data.values():
                 tmp_dict1: dict = user['user_info'].copy()
                 tmp_dict2: dict = user['user_units_data'].copy()
 
                 tmp_dict1['alias'] = tmp_dict1['alias'] if tmp_dict1['alias'] else tmp_dict1['name']
+
                 tmp_dict1['all_hearts'] = str(tmp_dict1['heart']) + '+' + str(tmp_dict1['heart_debris'])
                 tmp_dict1.pop('heart')
                 tmp_dict1.pop('heart_debris')
 
                 tmp_dict1['time'] = user['time']
                 user.pop('time')
+                # 角色部分
+                for key, unit in tmp_dict2.items():
+                    if unit['is_owned']:
+                        tmp_status = f"{unit['star']}星"
+                        # if unit['star'] < 6:
+                        #     # mem_list = [15, 30, 100, 120, 150, 50]
+                        #     if unit['pure_memory'] is not None:
+                        #         if unit['pure_memory'] >= 50 and tmp_dict1['star_cup'] >= 100 and unit['memory'] >= sum(
+                        #                 mem_list[unit['star']:]):
+                        #             tmp_status = f"{unit['star']}可6"
+                        #     elif unit['star'] < 5 and unit['memory'] >= mem_list[unit['star']]:
+                        #         for i in range(unit['star'] + 2, len(mem_list)):
+                        #             if unit['memory'] < sum(mem_list[unit['star']:i]):
+                        #                 tmp_status = f"{unit['star']}可{i - 1}"
+                        #                 break
+                        #         else:
+                        #             tmp_status = f"{unit['star']}可{len(mem_list) - 1}"
 
-                for unit in tmp_dict2.values():
-                    if unit:
                         tmp_list1 = []
                         tmp_list2 = []
                         for item in unit['equip']:
@@ -362,16 +393,38 @@ class ExcelExporter(object):
                         for item in unit['unique_equip']:
                             if item is None:
                                 tmp_list2.append('未实装')
-                            # elif item == 0:
-                            #     tmp_list2.append('未开专')
                             else:
                                 tmp_list2.append(str(item))
                         unit['unique_equip'] = "/".join(tmp_list2)
+                    elif unit['memory'] >= self._GameData.all_units_dict[key].count_1:
+                        tmp_status = '可拼'
 
-                        if unit['pure_memory'] is None:
-                            unit['pure_memory'] = '未实装'
+                        # if unit['pure_memory'] is not None:
+                        #     if unit['pure_memory'] >= 50 and tmp_dict1['star_cup'] >= 100 and unit['memory'] >= sum(
+                        #             mem_list[unit['star']:]) + self._GameData.all_units_dict[key].count_1:
+                        #         tmp_status = "可拼6"
+                        # elif unit['memory'] >= self._GameData.all_units_dict[key].count_1:
+                        #     tmp_status = f"可拼{unit['star']}"
+                        #     if unit['memory'] - self._GameData.all_units_dict[key].count_1 >= mem_list[unit['star']]:
+                        #         for i in range(unit['star'] + 2, len(mem_list)):
+                        #             if unit['memory'] - self._GameData.all_units_dict[key].count_1 < sum(
+                        #                     mem_list[unit['star']:i]):
+                        #                 tmp_status = f"可拼{i - 1}"
+                        #                 break
+                        #         else:
+                        #             tmp_status = f"可拼{len(mem_list) - 1}"
+                    else:
+                        tmp_status = '无'
+                    unit.pop('star')
+                    unit['status'] = tmp_status
+
+                    if unit['pure_memory'] is None:
+                        unit['pure_memory'] = '未实装'
+
                 user['user_info'] = tmp_dict1
                 user['user_units_data'] = tmp_dict2
+
+            # self._data = sorted(self._data)
             self._pre_processed = True
 
     def _fill_content(self):
@@ -381,7 +434,9 @@ class ExcelExporter(object):
             ws: Worksheet = wb[self._1_name]
             # ColumnDimension(ws, bestFit=True, auto_size=True)
             row = copy.deepcopy(self._1_content_row) - 1
-            for i, user in self._data.items():
+            # tmp_list = sorted(self._data)
+            for i in sorted(self._data):
+                user = self._data[i]
                 row += 1
                 ws.cell(row=row, column=1, value=i + 1)
                 for key, item in user['user_info'].items():
@@ -393,16 +448,16 @@ class ExcelExporter(object):
                 for key, unit in user['user_units_data'].items():
                     if key not in self._1_data_index.keys():
                         continue
-                    if unit is None:
-                        for col in self._1_data_index[key].values():
-                            ws.cell(row=row, column=col, value='未拥有')
-                    else:
-                        # tmp_dict = {}
-                        for item in unit:
-                            if self._1_data_index[key].get(item, None):
-                                ws.cell(row=row, column=self._1_data_index[key][item], value=unit[item])
-                            else:
-                                continue
+                    # if unit['is_owned'] is False:
+                    #     for col in self._1_data_index[key].values():
+                    #         ws.cell(row=row, column=col, value='未拥有')
+                    # else:
+                    #     # tmp_dict = {}
+                    for item in unit:
+                        if self._1_data_index[key].get(item, None):
+                            ws.cell(row=row, column=self._1_data_index[key][item], value=unit[item])
+                        else:
+                            continue
             # ColumnDimension(ws, bestFit=True)
 
         def _row_unit():

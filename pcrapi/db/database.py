@@ -23,11 +23,16 @@ class database():
     def update(self, dbmgr: dbmgr):
 
         with dbmgr.session() as db:
-            self.unlock_unit_dict: Dict[int, UnitDatum] = (
+            # New Start
+            self.unlock_unit_dict: Dict[int, UnlockUnitCondition] = (
                 UnlockUnitCondition.query(db)
                 .to_dict(lambda x: x.unit_id, lambda x: x)
             )
-
+            self.unit_data: Dict[int, UnitDatum] = (
+                UnitDatum.query(db)
+                .to_dict(lambda x: x.unit_id, lambda x: x)
+            )
+            # New End
             self.guild_data: Dict[int, Guild] = (
                 Guild.query(db)
                 .to_dict(lambda x: x.guild_id, lambda x: x)
