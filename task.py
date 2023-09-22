@@ -4,12 +4,23 @@ from asyncio import Queue
 from PySide6.QtCore import QThread, Signal, QObject, Slot
 from PySide6.QtCore import Qt  # 导入Qt模块
 
-from data import Account, ExcelExporter
+from data import Account, ExcelExporter, gamedata
 from global_var import global_var
 from pcrapi.bsdk.validator import validate_dict
 
 
 # from PySide6.QtGui import QColor
+
+class DbInitializer(QThread):
+    status_signal = Signal(str)
+    complete_signal = Signal()
+
+    def run(self):
+        self.status_signal.emit('Initializing database')
+        gamedata.db_initializer()
+        self.complete_signal.emit()
+
+
 class AsyncExporter(QThread):
     result_signal = Signal(bool, str)
     status_signal = Signal(str)

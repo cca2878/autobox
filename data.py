@@ -16,17 +16,16 @@ from pcrapi.db import database, dbstart
 from pcrapi.model import enums
 
 
-# import openpyxl
-
-
 class GameData(object):
     _inited = False
 
     def __init__(self):
         self._love_story_dict = None
         self._all_units_simple_dict = None
+
+    def db_initializer(self):
         if not self._inited:
-            asyncio.get_event_loop().run_until_complete(dbstart.db_start())
+            asyncio.new_event_loop().run_until_complete(dbstart.db_start())
             self._inited = True
 
     @property

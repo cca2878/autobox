@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import traceback
 
 # import os
 from PySide6.QtCore import QUrl, Slot, Signal, Qt
@@ -9,9 +8,8 @@ from PySide6.QtWidgets import QMainWindow, QDialog, QTableWidgetItem, QFileDialo
     QMessageBox, QListWidget, QListWidgetItem, QHeaderView
 
 import webbridge
-from data import ExcelExporter, gamedata
 from global_var import global_var
-from task import AsyncWorker, AsyncExporter
+from task import AsyncWorker, AsyncExporter, DbInitializer
 from ui_parts.ui_autobox import Ui_MainWindow
 from ui_parts.ui_edit import Ui_editDialog
 from ui_parts.ui_manualvali import Ui_MValiDialog
@@ -26,18 +24,34 @@ class MainWindowUi(Ui_MainWindow, QMainWindow):
         self._col_idx = {'index': 0, 'username': 1, 'status': 2, 'manual_vali': 3, 'last_time': 4}
         # self._exporter = ExcelExporter()
         self.setupUi(self)
+        self.show()
         # self.statusBar.showMessage('Ready.')
-        self.set_status_text('Ready')
-        # if not global_var.ACCOUNTS:
-        #     self.btnStart.setEnabled(False)
-        # if not global_var.RESULTS:
-        #     self.btnOutput.setEnabled(False)
+        # self.set_status_text('Ready')
+        self._startup()
+        # self._load()
+
+    def _startup(self):
+        self._set_components_status(False)
+        self.set_status_text('')
         self.btnStart.clicked.connect(self._start_tasks)
         self.btnEdit.clicked.connect(self._show_edit_dialog)
         self.btnOutput.clicked.connect(self._export_file)
         self.btnSelectU.clicked.connect(self._show_select_units_dialog)
-        self._load()
-        self.show()
+
+        def _db_complete():
+            self.set_status_text('Loading accounts')
+            try:
+                self._load()
+                self.set_status_text('Ready')
+                self._set_components_status(True)
+            except Exception as e:
+                self.set_status_text(f'Err! {str(e)}')
+            del self._db_init
+
+        self._db_init = DbInitializer()
+        self._db_init.status_signal.connect(self.set_status_text)
+        self._db_init.complete_signal.connect(_db_complete)
+        self._db_init.start()
 
     def _show_edit_dialog(self):
         self._edit_dialog = EditDialogUi()
@@ -179,6 +193,7 @@ class MainWindowUi(Ui_MainWindow, QMainWindow):
         self.set_status_text(text)
         if global_var.RESULTS:
             self.btnOutput.setEnabled(True)
+        del self._worker
 
     def _set_components_status(self, status: bool):
         for item in self.groupBox.findChildren(QWidget):
@@ -353,6 +368,7 @@ class ManualValiDialogUi(Ui_MValiDialog, QDialog):
 class SelectUnitsDialogUi(Ui_selectUnitDialog, QDialog):
     def __init__(self):
         super().__init__()
+        from data import gamedata
         self._game_data = gamedata
         self._global_var = global_var
         self.setupUi(self)
