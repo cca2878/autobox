@@ -4,16 +4,46 @@ from asyncio import Queue
 from PySide6.QtCore import QThread, Signal, QObject, Slot
 from PySide6.QtCore import Qt  # 导入Qt模块
 
-from data import Account
+from data import Account, ExcelExporter
 from global_var import global_var
 from pcrapi.bsdk.validator import validate_dict
 
 
 # from PySide6.QtGui import QColor
+class AsyncExporter(QThread):
+    result_signal = Signal(bool, str)
+    status_signal = Signal(str)
+
+    # fail = Signal
+    def __init__(self, file: str):
+        super().__init__()
+        self._file = file
+        self._exporter = ExcelExporter()
+        # self._obj = obj
+        # self._max_size = max_size
+
+    def run(self):
+        # selected_file = file_dialog.selectedFiles()[0]
+        print("Selected file:", self._file)
+        # self._exporter.preprocess_data()
+        # self._exporter.export_xlsx(file_dialog.selectedFiles()[0])
+        # _show_success_msgbox('\n'.join(('Successfully export to', file_dialog.selectedFiles()[0])))
+        try:
+            # self._exporter.preprocess_data()
+            self.status_signal.emit('Exporting')
+            self._exporter.export_xlsx(self._file)
+            self.result_signal.emit(True, '\n'.join(('Successfully export to', self._file)))
+            self.status_signal.emit('Export success.')
+            # _show_success_msgbox('\n'.join(('Successfully export to', file_dialog.selectedFiles()[0])))
+        except Exception as e:
+            self.result_signal.emit(False, '\n'.join(('Export failed.', str(e))))
+            self.status_signal.emit('Export failed')
+            # traceback.print_exc()
+            # _show_failed_msgbox('\n'.join(('Export failed.', str(e))))
 
 
 class AsyncWorker(QThread):
-    # finished = Signal()
+    status_signal = Signal(str)
 
     def __init__(self, obj, max_size):
         super().__init__()
@@ -25,6 +55,7 @@ class AsyncWorker(QThread):
         loop.set_debug(True)
         asyncio.set_event_loop(loop)
         obj = Starter(max_size=self._max_size, mw_obj=self._obj)
+        obj.status_signal.connect(lambda x: self.status_signal.emit(x))
         # Starter.complete_signal.connect(self.task_complete)
         # self._loop = asyncio.new_event_loop()
         # self._loop.set_debug(True)
@@ -38,6 +69,7 @@ class AsyncWorker(QThread):
 
 class Starter(QObject):
     complete_signal = Signal(str)
+    status_signal = Signal(str)
 
     def __init__(self, max_size, mw_obj):
         super().__init__()
@@ -47,36 +79,53 @@ class Starter(QObject):
         self._mw_obj = mw_obj
 
     async def start(self):
-        _poller = DataPoller()
-        _poller.m_vali_signal.connect(self._mw_obj.acquire_m_vali)
-        _producer = Producer.produce(self._queue)
-        await _producer
-
-        _poller_task = asyncio.create_task(_poller.poll_dict())
-        _consumers = []
-        # Consumer.status_signal.connect(self._mw_obj.set_acc_status_text)
-        # Consumer.time_signal.connect(self._mw_obj.set_last_time)
-        for i in range(self._max_size):
-            obj = Consumer(self._queue)
-            obj.status_signal.connect(self._mw_obj.set_acc_status_text)
-            obj.time_signal.connect(self._mw_obj.set_last_time)
-            _consumers.append(asyncio.create_task(obj.consume()))
-        _rst_tup: tuple = await asyncio.gather(*_consumers)
-
-        # _poller_task.cancel()
         try:
-            _poller.stop()
-            _poller_task.cancel()
-            await _poller_task
-        except asyncio.CancelledError:
-            pass
+            _poller = DataPoller()
+            _poller.m_vali_signal.connect(self._mw_obj.acquire_m_vali)
+            _producer = Producer.produce(self._queue)
+            self.status_signal.emit(f'Adding accounts to queue...')
+            await _producer
 
-        _results = {}
-        for dic in _rst_tup:
-            # 将字典更新
-            _results.update(dic)
-        global_var.set_RESULTS(_results)
-        self.complete_signal.emit('Complete.')
+            self.status_signal.emit(f'Starting poller...')
+            _poller_task = asyncio.create_task(_poller.poll_dict())
+            _consumers = []
+            # Consumer.status_signal.connect(self._mw_obj.set_acc_status_text)
+            # Consumer.time_signal.connect(self._mw_obj.set_last_time)
+            for i in range(self._max_size):
+                self.status_signal.emit(f'Creating thread {i}...')
+                obj = Consumer(self._queue)
+                obj.status_signal.connect(self._mw_obj.set_acc_status_text)
+                obj.time_signal.connect(self._mw_obj.set_last_time)
+                _consumers.append(asyncio.create_task(obj.consume()))
+
+            self.status_signal.emit(f'Gathering results...')
+            _rst_tup: tuple = await asyncio.gather(*_consumers)
+
+            # _poller_task.cancel()
+            self.status_signal.emit(f'Stopping poller...')
+            try:
+                _poller.stop()
+                # _poller_task.cancel()
+                await _poller_task
+            except Exception as e:
+                raise e
+
+            _results = {}
+            self.status_signal.emit('Updating results...')
+            for dic in _rst_tup:
+                # 将字典更新
+                _results.update(dic)
+            global_var.set_RESULTS(_results)
+        except Exception as e:
+            try:
+                _poller.stop()
+                # _poller_task.cancel()
+                await _poller_task
+            except Exception:
+                pass
+            self.complete_signal.emit(f'Failed! {str(e)}')
+        else:
+            self.complete_signal.emit('Success!')
 
 
 class DataPoller(QObject):
@@ -137,6 +186,7 @@ class Consumer(QObject):
                 self._queue.task_done()
                 continue
             # await _acc_obj.login()
+            self.status_signal.emit((_item[0], 'Gathering data...'))
             _sum = _acc_obj.user_data_sum
             self.time_signal.emit((_item[0], _sum['time']))
             self.status_signal.emit((_item[0], 'Complete!', Qt.green))

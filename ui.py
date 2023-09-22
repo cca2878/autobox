@@ -11,7 +11,7 @@ from PySide6.QtWidgets import QMainWindow, QDialog, QTableWidgetItem, QFileDialo
 import webbridge
 from data import ExcelExporter, gamedata
 from global_var import global_var
-from task import AsyncWorker
+from task import AsyncWorker, AsyncExporter
 from ui_parts.ui_autobox import Ui_MainWindow
 from ui_parts.ui_edit import Ui_editDialog
 from ui_parts.ui_manualvali import Ui_MValiDialog
@@ -24,16 +24,17 @@ class MainWindowUi(Ui_MainWindow, QMainWindow):
     def __init__(self):
         super().__init__()
         self._col_idx = {'index': 0, 'username': 1, 'status': 2, 'manual_vali': 3, 'last_time': 4}
-        self._exporter = ExcelExporter()
+        # self._exporter = ExcelExporter()
         self.setupUi(self)
-        self.statusBar.showMessage('Ready.')
+        # self.statusBar.showMessage('Ready.')
+        self.set_status_text('Ready')
         # if not global_var.ACCOUNTS:
         #     self.btnStart.setEnabled(False)
         # if not global_var.RESULTS:
         #     self.btnOutput.setEnabled(False)
         self.btnStart.clicked.connect(self._start_tasks)
         self.btnEdit.clicked.connect(self._show_edit_dialog)
-        self.btnOutput.clicked.connect(self._show_save_file_dialog)
+        self.btnOutput.clicked.connect(self._export_file)
         self.btnSelectU.clicked.connect(self._show_select_units_dialog)
         self._load()
         self.show()
@@ -48,41 +49,43 @@ class MainWindowUi(Ui_MainWindow, QMainWindow):
         # self._selectU_dialog.finished.connect(self._edit_dialog_finished)
         self._selectU_dialog.show()
 
-    def _show_save_file_dialog(self):
+    def _export_file(self):
         file_dialog = QFileDialog(self)
         file_dialog.setAcceptMode(QFileDialog.AcceptSave)
         file_dialog.setNameFilter('Excel Workbook (*.xlsx)')
 
-        def _show_success_msgbox(text: str):
+        def _show_msgbox(status: bool, text: str):
             # 创建一个QMessageBox实例
             message_box = QMessageBox(self)
-            message_box.setWindowTitle("Success")
             message_box.setText(text)
-            message_box.setIcon(QMessageBox.Information)
             message_box.setStandardButtons(QMessageBox.Ok)
+            if status:
+                message_box.setWindowTitle("Export Success!")
+                message_box.setIcon(QMessageBox.Information)
+            else:
+                message_box.setWindowTitle("Export Failed!")
+                message_box.setIcon(QMessageBox.Critical)
             message_box.exec()
-
-        def _show_failed_msgbox(text):
-            message_box = QMessageBox(self)
-            message_box.setWindowTitle("Failure")
-            message_box.setText(text)
-            message_box.setIcon(QMessageBox.Critical)
-            message_box.setStandardButtons(QMessageBox.Ok)
-            message_box.exec()
+            self._set_components_status(True)
 
         if file_dialog.exec() == QFileDialog.Accepted:
-            selected_file = file_dialog.selectedFiles()[0]
-            print("Selected file:", selected_file)
+            self._set_components_status(False)
+            self._exporter = AsyncExporter(file_dialog.selectedFiles()[0])
+            self._exporter.result_signal.connect(_show_msgbox)
+            self._exporter.status_signal.connect(self.set_status_text)
+            self._exporter.start()
+            # selected_file = file_dialog.selectedFiles()[0]
+            # print("Selected file:", selected_file)
             # self._exporter.preprocess_data()
             # self._exporter.export_xlsx(file_dialog.selectedFiles()[0])
             # _show_success_msgbox('\n'.join(('Successfully export to', file_dialog.selectedFiles()[0])))
-            try:
-                # self._exporter.preprocess_data()
-                self._exporter.export_xlsx(file_dialog.selectedFiles()[0])
-                _show_success_msgbox('\n'.join(('Successfully export to', file_dialog.selectedFiles()[0])))
-            except Exception as e:
-                traceback.print_exc()
-                _show_failed_msgbox('\n'.join(('Export failed.', str(e))))
+            # try:
+            #     # self._exporter.preprocess_data()
+            #     self._exporter.export_xlsx(file_dialog.selectedFiles()[0])
+            #     _show_success_msgbox('\n'.join(('Successfully export to', file_dialog.selectedFiles()[0])))
+            # except Exception as e:
+            #     traceback.print_exc()
+            #     _show_failed_msgbox('\n'.join(('Export failed.', str(e))))
 
     def _edit_dialog_finished(self, result):
         if result == QDialog.Accepted:
@@ -151,7 +154,7 @@ class MainWindowUi(Ui_MainWindow, QMainWindow):
 
     @Slot(str)
     def set_status_text(self, text):
-        self.statusBar.showMessage(text)
+        self.statusBar.showMessage(f'Status: {text}...')
 
     @Slot(tuple)
     def set_last_time(self, info):
@@ -186,6 +189,7 @@ class MainWindowUi(Ui_MainWindow, QMainWindow):
     def _start_tasks(self):
         self._set_components_status(False)
         self._worker = AsyncWorker(obj=self, max_size=self.spboxThNum.value())
+        self._worker.status_signal.connect(self.set_status_text)
         self._worker.start()
 
         # from task import Starter
