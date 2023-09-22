@@ -20,14 +20,14 @@
                         <item>
                             <widget class="QGroupBox" name="groupBox">
                                 <property name="sizePolicy">
-                                    <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                                    <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
                                         <horstretch>0</horstretch>
                                         <verstretch>0</verstretch>
                                     </sizepolicy>
                                 </property>
-                                <property name="maximumSize">
+                                <property name="minimumSize">
                                     <size>
-                                        <width>450</width>
+                                        <width>0</width>
                                         <height>80</height>
                                     </size>
                                 </property>
@@ -42,6 +42,12 @@
                                             <width>201</width>
                                             <height>20</height>
                                         </rect>
+                                    </property>
+                                    <property name="sizePolicy">
+                                        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                                            <horstretch>0</horstretch>
+                                            <verstretch>0</verstretch>
+                                        </sizepolicy>
                                     </property>
                                     <property name="text">
                                         <string>col&amp;&amp;line exchanged also</string>
@@ -111,6 +117,18 @@
                                         <horstretch>0</horstretch>
                                         <verstretch>0</verstretch>
                                     </sizepolicy>
+                                </property>
+                                <property name="minimumSize">
+                                    <size>
+                                        <width>110</width>
+                                        <height>0</height>
+                                    </size>
+                                </property>
+                                <property name="maximumSize">
+                                    <size>
+                                        <width>110</width>
+                                        <height>16777215</height>
+                                    </size>
                                 </property>
                                 <layout class="QVBoxLayout" name="verticalLayout_2">
                                     <item>
