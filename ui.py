@@ -24,7 +24,7 @@ class MainWindowUi(Ui_MainWindow, QMainWindow):
         self._col_idx = {'index': 0, 'username': 1, 'status': 2, 'manual_vali': 3, 'last_time': 4}
         # self._exporter = ExcelExporter()
         self.setupUi(self)
-        self.show()
+        # self.show()
         # self.statusBar.showMessage('Ready.')
         # self.set_status_text('Ready')
         self._startup()
