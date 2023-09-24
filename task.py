@@ -26,10 +26,10 @@ class AsyncExporter(QThread):
     status_signal = Signal(str)
 
     # fail = Signal
-    def __init__(self, file: str):
+    def __init__(self, file: str, mode: bool = False):
         super().__init__()
         self._file = file
-        self._exporter = ExcelExporter()
+        self._exporter = ExcelExporter(mode)
         # self._obj = obj
         # self._max_size = max_size
 

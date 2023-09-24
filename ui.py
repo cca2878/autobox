@@ -84,7 +84,7 @@ class MainWindowUi(Ui_MainWindow, QMainWindow):
 
         if file_dialog.exec() == QFileDialog.Accepted:
             self._set_components_status(False)
-            self._exporter = AsyncExporter(file_dialog.selectedFiles()[0])
+            self._exporter = AsyncExporter(file_dialog.selectedFiles()[0], mode=self.checkBoxSep.isChecked())
             self._exporter.result_signal.connect(_show_msgbox)
             self._exporter.status_signal.connect(self.set_status_text)
             self._exporter.start()

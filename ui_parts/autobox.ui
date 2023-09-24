@@ -34,12 +34,12 @@
                                 <property name="title">
                                     <string>Settings</string>
                                 </property>
-                                <widget class="QCheckBox" name="checkBoxExch">
+                                <widget class="QCheckBox" name="checkBoxSep">
                                     <property name="geometry">
                                         <rect>
                                             <x>20</x>
                                             <y>50</y>
-                                            <width>201</width>
+                                            <width>211</width>
                                             <height>20</height>
                                         </rect>
                                     </property>
@@ -50,13 +50,13 @@
                                         </sizepolicy>
                                     </property>
                                     <property name="text">
-                                        <string>col&amp;&amp;line exchanged also</string>
+                                        <string>Separate info&amp;&amp;data when export</string>
                                     </property>
                                 </widget>
                                 <widget class="QPushButton" name="btnEdit">
                                     <property name="geometry">
                                         <rect>
-                                            <x>190</x>
+                                            <x>240</x>
                                             <y>30</y>
                                             <width>91</width>
                                             <height>31</height>
@@ -98,7 +98,7 @@
                                 <widget class="QPushButton" name="btnSelectU">
                                     <property name="geometry">
                                         <rect>
-                                            <x>290</x>
+                                            <x>340</x>
                                             <y>30</y>
                                             <width>75</width>
                                             <height>31</height>
@@ -236,12 +236,14 @@
     </widget>
     <tabstops>
         <tabstop>spboxThNum</tabstop>
-        <tabstop>checkBoxExch</tabstop>
+        <tabstop>checkBoxSep</tabstop>
         <tabstop>btnEdit</tabstop>
         <tabstop>btnSelectU</tabstop>
         <tabstop>btnStart</tabstop>
         <tabstop>btnOutput</tabstop>
     </tabstops>
-    <resources/>
+    <resources>
+        <include location="../main_res.qrc"/>
+    </resources>
     <connections/>
 </ui>

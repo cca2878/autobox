@@ -8,11 +8,18 @@
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
 
-from PySide6.QtCore import (QCoreApplication, QMetaObject, QRect,
-                            QSize)
-from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QGroupBox,
-                               QHBoxLayout, QLabel, QPushButton, QSizePolicy, QSpinBox, QStatusBar,
+from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
+                            QMetaObject, QObject, QPoint, QRect,
+                            QSize, QTime, QUrl, Qt)
+from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
+                           QFont, QFontDatabase, QGradient, QIcon,
+                           QImage, QKeySequence, QLinearGradient, QPainter,
+                           QPalette, QPixmap, QRadialGradient, QTransform)
+from PySide6.QtWidgets import (QAbstractItemView, QApplication, QCheckBox, QGroupBox,
+                               QHBoxLayout, QHeaderView, QLabel, QMainWindow,
+                               QPushButton, QSizePolicy, QSpinBox, QStatusBar,
                                QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
+import main_res_rc
 
 
 class Ui_MainWindow(object):
@@ -34,17 +41,17 @@ class Ui_MainWindow(object):
         sizePolicy.setHeightForWidth(self.groupBox.sizePolicy().hasHeightForWidth())
         self.groupBox.setSizePolicy(sizePolicy)
         self.groupBox.setMinimumSize(QSize(0, 80))
-        self.checkBoxExch = QCheckBox(self.groupBox)
-        self.checkBoxExch.setObjectName(u"checkBoxExch")
-        self.checkBoxExch.setGeometry(QRect(20, 50, 201, 20))
+        self.checkBoxSep = QCheckBox(self.groupBox)
+        self.checkBoxSep.setObjectName(u"checkBoxSep")
+        self.checkBoxSep.setGeometry(QRect(20, 50, 211, 20))
         sizePolicy1 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         sizePolicy1.setHorizontalStretch(0)
         sizePolicy1.setVerticalStretch(0)
-        sizePolicy1.setHeightForWidth(self.checkBoxExch.sizePolicy().hasHeightForWidth())
-        self.checkBoxExch.setSizePolicy(sizePolicy1)
+        sizePolicy1.setHeightForWidth(self.checkBoxSep.sizePolicy().hasHeightForWidth())
+        self.checkBoxSep.setSizePolicy(sizePolicy1)
         self.btnEdit = QPushButton(self.groupBox)
         self.btnEdit.setObjectName(u"btnEdit")
-        self.btnEdit.setGeometry(QRect(190, 30, 91, 31))
+        self.btnEdit.setGeometry(QRect(240, 30, 91, 31))
         self.labelThreads = QLabel(self.groupBox)
         self.labelThreads.setObjectName(u"labelThreads")
         self.labelThreads.setGeometry(QRect(20, 20, 51, 21))
@@ -55,7 +62,7 @@ class Ui_MainWindow(object):
         self.spboxThNum.setMaximum(8)
         self.btnSelectU = QPushButton(self.groupBox)
         self.btnSelectU.setObjectName(u"btnSelectU")
-        self.btnSelectU.setGeometry(QRect(290, 30, 75, 31))
+        self.btnSelectU.setGeometry(QRect(340, 30, 75, 31))
 
         self.horizontalLayout.addWidget(self.groupBox)
 
@@ -124,8 +131,8 @@ class Ui_MainWindow(object):
         self.statusBar = QStatusBar(MainWindow)
         self.statusBar.setObjectName(u"statusBar")
         MainWindow.setStatusBar(self.statusBar)
-        QWidget.setTabOrder(self.spboxThNum, self.checkBoxExch)
-        QWidget.setTabOrder(self.checkBoxExch, self.btnEdit)
+        QWidget.setTabOrder(self.spboxThNum, self.checkBoxSep)
+        QWidget.setTabOrder(self.checkBoxSep, self.btnEdit)
         QWidget.setTabOrder(self.btnEdit, self.btnSelectU)
         QWidget.setTabOrder(self.btnSelectU, self.btnStart)
         QWidget.setTabOrder(self.btnStart, self.btnOutput)
@@ -139,7 +146,7 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Autobox", None))
         self.groupBox.setTitle(QCoreApplication.translate("MainWindow", u"Settings", None))
-        self.checkBoxExch.setText(QCoreApplication.translate("MainWindow", u"col&&line exchanged also", None))
+        self.checkBoxSep.setText(QCoreApplication.translate("MainWindow", u"Separate info&&data when export", None))
         self.btnEdit.setText(QCoreApplication.translate("MainWindow", u"Edit accounts", None))
         self.labelThreads.setText(QCoreApplication.translate("MainWindow", u"Threads:", None))
         self.btnSelectU.setText(QCoreApplication.translate("MainWindow", u"Select Units", None))

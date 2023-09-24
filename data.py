@@ -230,10 +230,10 @@ class Account(object):
 
 
 class ExcelExporter(object):
-    def __init__(self, mode=1):
+    def __init__(self, mode=False):
         """
         导出Excel表格
-        :param mode: Int, 0,1,2。0为双格式，1为仅行账号，2为仅行角色
+        :param mode: bool, True代表分离，False代表不分离，默认False
         """
         # self._data: Dict[int, dict] = copy.deepcopy(data)
         self._pre_processed = False
@@ -246,8 +246,8 @@ class ExcelExporter(object):
 
     def _init_template(self):
         _info_headers = [
-            ('alias', '昵称'),
-            ('name', '用户名'),
+            ('alias', '昵称/用户名'),
+            # ('name', '用户名'),
             ('id', 'uid'),
             ('time', '更新时间'),
             ('mana', 'mana数'),
@@ -264,86 +264,99 @@ class ExcelExporter(object):
                          # ('pure_memory', '纯净碎片')
                          ]
         _nicknames = global_var.NICKNAMES
-        self._1_name = '行->账号'
+        self._0_name = '账号信息'
+        self._0_info_index = {}
+        self._1_name = 'BOX信息'
         self._1_info_index = {}
         self._1_data_index = {}
-        self._1_content_row = 3
-        self._2_name = '行->角色'
+        # self._1_content_row = 3
         self._selected_units = global_var.SELECTEDUNITS
         wb: Workbook = Workbook()
         wb.remove(wb['Sheet'])
         _alignment = Alignment(vertical='center')
 
-        def _row_account():
-            ws: Worksheet = wb.create_sheet(title=self._1_name, index=0)
-            # ColumnDimension(ws, bestFit=True, auto_size=True)
-            # ws = wb.active
-            for i in range(1, len(_info_headers) + 2):
-                if i == 1:
-                    ws.cell(row=1, column=i, value=f'序号')
-                    self._1_info_index['index'] = i
-                    ws.column_dimensions[openpyxl.utils.get_column_letter(i)].width = 5
-                    # ws.column_dimensions[openpyxl.utils.get_column_letter(i)].bestFit = True
-                    # ws.column_dimensions[openpyxl.utils.get_column_letter(i)].auto_size = True
-                else:
-                    ws.cell(row=1, column=i, value=f'{_info_headers[i - 2][1]}')
-                    self._1_info_index[_info_headers[i - 2][0]] = i
-                    ws.column_dimensions[openpyxl.utils.get_column_letter(i)].width = 10
-                    # ws.column_dimensions[openpyxl.utils.get_column_letter(i)].bestFit = True
-                    # ws.column_dimensions[openpyxl.utils.get_column_letter(i)].auto_size = True
-                ws.merge_cells(start_row=1, end_row=2, start_column=i, end_column=i)
-                cell: Cell = ws.cell(row=1, column=i)
-                cell.alignment = _alignment
-                if i == len(_info_headers) + 1:
-                    ws.cell(row=1, column=i + 1, value=f'角色')
-                    ws.merge_cells(start_row=1, end_row=2, start_column=i + 1, end_column=i + 1)
-                    ws.column_dimensions[openpyxl.utils.get_column_letter(i + 1)].width = 5
-                    # ws.merge_cells(start_row=3, end_row=8192, start_column=i + 1, end_column=i + 1)
-                    cell: Cell = ws.cell(row=1, column=i + 1)
-                    cell.alignment = _alignment
+        def _info_sheet(ws: Worksheet, mode: bool):
+            # ws: Worksheet = wb.create_sheet(title=self._1_name, index=0)
+            if mode:
+                _cnt = 0
+                # ColumnDimension(ws, bestFit=True, auto_size=True)
+                # ws = wb.active
+                for i in range(1, len(_info_headers) + 2):
+                    if _cnt == 2:
+                        break
+                    if i == 1:
+                        ws.cell(row=1, column=i, value=f'序号')
+                        self._1_info_index['index'] = i
+                        ws.column_dimensions[openpyxl.utils.get_column_letter(i)].width = 5
+                    elif _info_headers[i - 2][0] == 'alias':
+                        col = ws.max_column + 1
+                        ws.cell(row=1, column=col, value=f'{_info_headers[i - 2][1]}')
+                        self._1_info_index[_info_headers[i - 2][0]] = col
+                    else:
+                        continue
+                    _cnt += 1
+                    ws.merge_cells(start_row=1, end_row=2, start_column=i, end_column=i)
+                    ws.cell(row=1, column=i).alignment = _alignment
+            else:
+                for i in range(1, len(_info_headers) + 2):
+                    if i == 1:
+                        ws.cell(row=1, column=i, value=f'序号')
+                        self._0_info_index['index'] = i
+                        ws.column_dimensions[openpyxl.utils.get_column_letter(i)].width = 5
+                    else:
+                        ws.cell(row=1, column=i, value=f'{_info_headers[i - 2][1]}')
+                        self._0_info_index[_info_headers[i - 2][0]] = i
+                        ws.column_dimensions[openpyxl.utils.get_column_letter(i)].width = 10
+                    ws.merge_cells(start_row=1, end_row=2, start_column=i, end_column=i)
+                    ws.cell(row=1, column=i).alignment = _alignment
+
+        def _units_sheet(ws: Worksheet):
+            _col = ws.max_column + 1
+            ws.cell(row=1, column=_col, value=f'角色')
+            ws.merge_cells(start_row=1, end_row=2, start_column=_col, end_column=_col)
+            ws.column_dimensions[openpyxl.utils.get_column_letter(_col)].width = 5
+            ws.cell(row=1, column=_col).alignment = _alignment
 
             # 角色数据部分
-            def _init_unit(_i, _item):
+            def _init_unit(_i, _item, _ws):
                 # 获取区域&合并单元格
                 if _i == 0:  # 角色之间间隔一列，前间隔
-                    temp_start_col = ws.max_column + 1
+                    temp_start_col = _ws.max_column + 1
                 else:
-                    temp_start_col = ws.max_column + 2
-                    ws.column_dimensions[openpyxl.utils.get_column_letter(temp_start_col - 1)].width = 3
-                ws.merge_cells(start_row=1, end_row=1, start_column=temp_start_col + 1,
-                               end_column=temp_start_col + len(_unit_headers) - 1)
+                    temp_start_col = _ws.max_column + 2
+                    _ws.column_dimensions[openpyxl.utils.get_column_letter(temp_start_col - 1)].width = 3
+                _ws.merge_cells(start_row=1, end_row=1, start_column=temp_start_col + 1,
+                                end_column=temp_start_col + len(_unit_headers) - 1)
                 # 填入名称
                 if _nicknames and _item[0] in _nicknames.keys():
-                    ws.cell(row=1, column=temp_start_col + 1,
-                            value="-".join([str(_item[0]), str(_nicknames[_item[0]]), _item[1].unit_name]))
+                    _ws.cell(row=1, column=temp_start_col + 1,
+                             value="-".join([str(_item[0]), str(_nicknames[_item[0]]), _item[1].unit_name]))
                 else:
-                    ws.cell(row=1, column=temp_start_col + 1, value="-".join([str(_item[0]), _item[1].unit_name]))
+                    _ws.cell(row=1, column=temp_start_col + 1, value="-".join([str(_item[0]), _item[1].unit_name]))
                 # 建立索引
                 self._1_data_index[_item[0]] = {}
                 for j in range(len(_unit_headers)):
-                    ws.cell(row=2, column=temp_start_col + j, value=_unit_headers[j][1])
-                    ws.column_dimensions[openpyxl.utils.get_column_letter(temp_start_col + j)].width = 11.5
+                    _ws.cell(row=2, column=temp_start_col + j, value=_unit_headers[j][1])
+                    _ws.column_dimensions[openpyxl.utils.get_column_letter(temp_start_col + j)].width = 11.5
                     self._1_data_index[_item[0]][_unit_headers[j][0]] = temp_start_col + j
 
             if not self._selected_units:
                 for i, item in enumerate(self._GameData.all_units_dict.items()):
-                    _init_unit(i, item)
+                    _init_unit(i, item, ws)
             else:
                 for i in range(len(self._selected_units)):
                     unit_id = self._selected_units[i]
-                    _init_unit(i, (unit_id, self._GameData.all_units_dict[unit_id]))
+                    _init_unit(i, (unit_id, self._GameData.all_units_dict[unit_id]), ws)
 
-        def _row_unit():
-            ws = wb.create_sheet(title=self._2_name, index=1)
-            ColumnDimension(ws, bestFit=True, auto_size=True)
-
-        if self._mode == 1:
-            _row_account()
-        elif self._mode == 2:
-            _row_unit()
+        if self._mode:
+            _info_sheet(wb.create_sheet(title=self._0_name, index=1), False)
+            ws = wb.create_sheet(title=self._1_name, index=2)
+            _info_sheet(ws, True)
+            _units_sheet(ws)
         else:
-            _row_account()
-            _row_unit()
+            ws = wb.create_sheet(title=self._1_name, index=2)
+            _info_sheet(ws, False)
+            _units_sheet(ws)
 
         self._xlsx = wb
 
@@ -356,6 +369,7 @@ class ExcelExporter(object):
                 tmp_dict2: dict = user['user_units_data'].copy()
 
                 tmp_dict1['alias'] = tmp_dict1['alias'] if tmp_dict1['alias'] else tmp_dict1['name']
+                tmp_dict1.pop('name')
 
                 tmp_dict1['all_hearts'] = str(tmp_dict1['heart']) + '+' + str(tmp_dict1['heart_debris'])
                 tmp_dict1.pop('heart')
@@ -429,46 +443,54 @@ class ExcelExporter(object):
     def _fill_content(self):
         wb = self._xlsx
 
-        def _row_account():
-            ws: Worksheet = wb[self._1_name]
-            # ColumnDimension(ws, bestFit=True, auto_size=True)
-            row = copy.deepcopy(self._1_content_row) - 1
+        def _fill(_ws: Worksheet, mode: bool, short_info: bool = False):
+            # _ws: Worksheet = wb[self._1_name]
+            row = _ws.max_row
+
             # tmp_list = sorted(self._data)
-            for i in sorted(self._data):
-                user = self._data[i]
-                row += 1
-                ws.cell(row=row, column=1, value=i + 1)
-                for key, item in user['user_info'].items():
-                    if self._1_info_index.get(key, None):
-                        ws.cell(row=row, column=self._1_info_index[key],
-                                value=row - self._1_content_row if key == 'index' else item)
-                    else:
-                        continue
-                for key, unit in user['user_units_data'].items():
-                    if key not in self._1_data_index.keys():
-                        continue
-                    # if unit['is_owned'] is False:
-                    #     for col in self._1_data_index[key].values():
-                    #         ws.cell(row=row, column=col, value='未拥有')
-                    # else:
-                    #     # tmp_dict = {}
-                    for item in unit:
-                        if self._1_data_index[key].get(item, None):
-                            ws.cell(row=row, column=self._1_data_index[key][item], value=unit[item])
+            if mode:
+                # _info_index = self._0_info_index if info_only else self._1_info_index
+                for i in sorted(self._data):
+                    user = self._data[i]
+                    row += 1
+                    _ws.cell(row=row, column=1, value=i + 1)
+                    for key, item in user['user_info'].items():
+                        if self._0_info_index.get(key, None):
+                            _ws.cell(row=row, column=self._0_info_index[key], value=item)
                         else:
                             continue
+            else:
+                _info_index = self._1_info_index if short_info else self._0_info_index
+                for i in sorted(self._data):
+                    user = self._data[i]
+                    row += 1
+                    _ws.cell(row=row, column=1, value=i + 1)
+                    for key, item in user['user_info'].items():
+                        if _info_index.get(key, None):
+                            _ws.cell(row=row, column=_info_index[key], value=item)
+                        else:
+                            continue
+                    for key, unit in user['user_units_data'].items():
+                        if key not in self._1_data_index.keys():
+                            continue
+                        # if unit['is_owned'] is False:
+                        #     for col in self._1_data_index[key].values():
+                        #         ws.cell(row=row, column=col, value='未拥有')
+                        # else:
+                        #     # tmp_dict = {}
+                        for item in unit:
+                            if self._1_data_index[key].get(item, None):
+                                _ws.cell(row=row, column=self._1_data_index[key][item], value=unit[item])
+                            else:
+                                continue
             # ColumnDimension(ws, bestFit=True)
 
-        def _row_unit():
-            pass
-
-        if self._mode == 1:
-            _row_account()
-        elif self._mode == 2:
-            _row_unit()
+        if self._mode:
+            # ws1: Worksheet = wb[self._0_name]
+            _fill(wb[self._0_name], True)
+            _fill(wb[self._1_name], False, short_info=True)
         else:
-            _row_account()
-            _row_unit()
+            _fill(wb[self._1_name], False)
 
         self._xlsx = wb
 
