@@ -1,17 +1,21 @@
 import asyncio
 from asyncio import Queue
+from traceback import print_exc
 
 from PySide6.QtCore import QThread, Signal, QObject, Slot
 from PySide6.QtCore import Qt  # 导入Qt模块
 
 from data import Account, ExcelExporter, gamedata
-from global_var import global_var
+from data_new import PcrAccount, JsonExporter
+# from global_var import global_var
+from data_db import acc_db, result_db
 from pcrapi.bsdk.validator import validate_dict
 
 
 # from PySide6.QtGui import QColor
 
 class DbInitializer(QThread):
+    # start_signal = Signal()
     status_signal = Signal(str)
     complete_signal = Signal()
 
@@ -26,31 +30,57 @@ class AsyncExporter(QThread):
     status_signal = Signal(str)
 
     # fail = Signal
-    def __init__(self, file: str, mode: bool = False):
+    def __init__(self, file: str, json_only: bool = False, mode: bool = False):
+        """
+        Export Files
+        :param file:
+        :param mode:
+        """
         super().__init__()
+        self._exporter = None
         self._file = file
-        self._exporter = ExcelExporter(mode)
+        self._mode = mode
+        self._json_only = json_only
+        # self._exporter = ExcelExporter(mode)
         # self._obj = obj
         # self._max_size = max_size
 
     def run(self):
-        # selected_file = file_dialog.selectedFiles()[0]
-        print("Selected file:", self._file)
-        # self._exporter.preprocess_data()
-        # self._exporter.export_xlsx(file_dialog.selectedFiles()[0])
-        # _show_success_msgbox('\n'.join(('Successfully export to', file_dialog.selectedFiles()[0])))
-        try:
-            # self._exporter.preprocess_data()
-            self.status_signal.emit('Exporting')
-            self._exporter.export_xlsx(self._file)
-            self.result_signal.emit(True, '\n'.join(('Successfully export to', self._file)))
-            self.status_signal.emit('Export success.')
-            # _show_success_msgbox('\n'.join(('Successfully export to', file_dialog.selectedFiles()[0])))
-        except Exception as e:
-            self.result_signal.emit(False, '\n'.join(('Export failed.', str(e))))
-            self.status_signal.emit('Export failed')
-            # traceback.print_exc()
-            # _show_failed_msgbox('\n'.join(('Export failed.', str(e))))
+        def export_xlsx():
+            print("Selected file:", self._file)
+            try:
+                self._exporter = ExcelExporter(self._mode)
+                self.status_signal.emit('Exporting')
+                self._exporter.export_xlsx(self._file)
+                self.result_signal.emit(True, '\n\n'.join(('Successfully export xlsx to', self._file)))
+                self.status_signal.emit('Export success.')
+            except Exception as e:
+                self.result_signal.emit(False, '\n\n'.join(('Export failed.', str(e))))
+                self.status_signal.emit('Export failed')
+
+        def export_json():
+            print("Selected path:", self._file)
+            try:
+                self._exporter = JsonExporter()
+                self.status_signal.emit('Exporting')
+                self._exporter.export_json(self._file)
+                self.result_signal.emit(True, '\n\n'.join(('Successfully export json to', self._file)))
+                self.status_signal.emit('Export success.')
+            except Exception as e:
+                self.result_signal.emit(False, '\n\n'.join(('Export failed.', str(e))))
+                self.status_signal.emit('Export failed')
+
+        if self._json_only:
+            export_json()
+        else:
+            export_xlsx()
+
+
+
+    def export_json(self):
+        print("Selected path:", self._file)
+
+
 
 
 class AsyncWorker(QThread):
@@ -121,13 +151,14 @@ class Starter(QObject):
             except Exception as e:
                 raise e
 
-            _results = {}
-            self.status_signal.emit('Updating results...')
-            for dic in _rst_tup:
-                # 将字典更新
-                _results.update(dic)
-            global_var.set_RESULTS(_results)
+            # _results = {}
+            # self.status_signal.emit('Updating results...')
+            # for dic in _rst_tup:
+            #     # 将字典更新
+            #     _results.update(dic)
+            # global_var.set_RESULTS(_results)
         except Exception as e:
+            print_exc()
             try:
                 _poller.stop()
                 # _poller_task.cancel()
@@ -166,94 +197,46 @@ class DataPoller(QObject):
 class Producer(object):
     @staticmethod
     async def produce(queue):
-        # 生成limit个数据
-        _data = global_var.ACCOUNTS
-        # 将数据放入队列中
-        for item in _data.items():
+        # _data = global_var.ACCOUNTS
+        for item in acc_db.db.all():
             await queue.put(item)
 
 
 class Consumer(QObject):
     # 定义一个协程函数，用于消费数据
-    status_signal = Signal(tuple)
-    time_signal = Signal(tuple)
+    status_signal = Signal(str, str, int)
+    time_signal = Signal(str, str)
 
     def __init__(self, queue: Queue):
         super().__init__()
         self._queue = queue
 
+    def _emit_status_signal(self, acc:str, text:str, color=None):
+        self.status_signal.emit(acc, text, color)
+
     async def consume(self):
-        results = {}
+        results = []
         # 循环直到队列为空
         while not self._queue.empty():
             # 从队列中获取数据
-            _item = await self._queue.get()  # 0: idx, 1: acc list
-            _acc = _item[1]  # 0:username, 1:password
-            _acc_obj = Account(_acc[0], _acc[1])
-            self.status_signal.emit((_item[0], 'Login...'))
+            _item = await self._queue.get()  # 'accounts': acc, 'password': pwd
+            # _acc = _item[1]  # 0:username, 1:password
+            _acc_obj = PcrAccount(_item['acc'], _item['pwd'])
+            self._emit_status_signal(_item['acc'], 'Login...')
             ret_val = await _acc_obj.login()
             if ret_val[0] != 0:
-                self.status_signal.emit((_item[0], f'Err {ret_val[0]}: {ret_val[1]}', Qt.red))
+                self._emit_status_signal(_item['acc'], f'Err {ret_val[0]}: {ret_val[1]}', Qt.red)
                 self._queue.task_done()
                 continue
             # await _acc_obj.login()
-            self.status_signal.emit((_item[0], 'Gathering data...'))
-            _sum = _acc_obj.user_data_sum
-            self.time_signal.emit((_item[0], _sum['time']))
-            self.status_signal.emit((_item[0], 'Complete!', Qt.green))
-            results[_item[0]] = _sum
+            self._emit_status_signal(_item['acc'], 'Gathering data...')
+            _sum = _acc_obj.sum
+            _query = result_db.get_query()
+            result_db.db.upsert(_sum, _query.acc == _item['acc'])
+            self.time_signal.emit(_item['acc'], _sum['time'])
+            self._emit_status_signal(_item['acc'], 'Complete!', Qt.green)
+            # results.append(_sum)
             # 任务完成
             self._queue.task_done()
             await asyncio.sleep(2)
-        return results
-
-
-"""
-class TaskThread(QThread):
-    m_vali_signal = Signal()
-    status_signal = Signal(tuple)
-    time_signal = Signal(tuple)
-
-    def __init__(self, idx: int, user: list, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._stop_flag = True
-        self._idx = idx
-        self._user = user
-        self._acc = Account(username=user[0], password=user[1])
-
-    async def check_vali_dict(self):
-        while not self._stop_flag:
-            if self._user[0] in validate_dict:
-                self.m_vali_signal.emit()
-                self.status_signal.emit((self._idx, 'Waiting for manual validate!', Qt.red))
-                break
-            await asyncio.sleep(1)
-
-    async def start_login(self):
-        await self.status_signal.emit((self._idx, 'Login…'))
-        return await self._acc.login()
-
-    def run(self):
-
-        _loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(_loop)
-
-        async def main():
-            task_login = _loop.create_task(_start_login())
-            task_chk_dict = _loop.create_task(_check_vali_dict())
-
-            await asyncio.gather(task_login, task_chk_dict)
-            result = task_login.result()
-            if result[0] != 0:
-                self.status_signal.emit((self._idx, f'Err：{result[1]}', Qt.red))
-                self._stop_flag = True
-            else:
-                time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                self._stop_flag = True
-                self.status_signal.emit((self._idx, 'Complete!', Qt.green))
-                self.time_signal.emit((self._idx, time))
-                return {self._idx: [time, self._acc.user_data_sum]}
-
-        _loop.run_until_complete(main())
-        # asyncio.get_event_loop().create_task(self._acc.login())
-"""
+        # return results

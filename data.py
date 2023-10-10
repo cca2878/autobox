@@ -1,13 +1,10 @@
 import asyncio
-import copy
 import traceback
 from datetime import datetime
 
 import openpyxl
-from openpyxl.cell import Cell
 from openpyxl.styles import Alignment
 from openpyxl.workbook import Workbook
-from openpyxl.worksheet.dimensions import ColumnDimension
 from openpyxl.worksheet.worksheet import Worksheet
 
 from global_var import global_var
@@ -73,8 +70,9 @@ class Account(object):
         self._game_data = gamedata
         self._user_info = None
         self._user_units_data = None
+        self._user_json = None
         self._account_data = {'username': username, 'password': password}
-        self._client = self._get_client()
+        self._client = pcrclient(platform={'account': username, 'password': password, 'channel': 1, 'platform': 2})
 
     @property
     def user_units_data(self):
@@ -93,17 +91,6 @@ class Account(object):
         return {'user_info': self._user_info, 'user_units_data': self._user_units_data,
                 'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 
-    def _get_client(self):
-        # Get Android Client
-        _client = pcrclient(platform={
-            'account': self._account_data['username'],
-            'password': self._account_data['password'],
-            'channel': 1,
-            'platform': 2
-        },
-        )
-        return _client
-
     async def login(self):
         try:
             await self._client.login()
@@ -120,14 +107,6 @@ class Account(object):
             else:
                 return 0, ''
 
-    def check_login(func):
-        def wrapper(self, *args, **kwargs):
-            if self._client.name is None:
-                raise Exception("Haven't Login!")
-            return func(self, *args, **kwargs)
-
-        return wrapper
-
     def _update_data(self):
         try:
             self._get_user_units_odict()
@@ -136,7 +115,7 @@ class Account(object):
         except Exception as _e:
             raise _e
 
-    @check_login
+    # @check_login
     def _get_user_units_odict(self):
         """Get user's units origin dict"""
         try:
@@ -212,7 +191,7 @@ class Account(object):
         self._user_units_data = _new_data
         # return _new_data
 
-    @check_login
+    # @check_login
     def _gen_user_info_dict(self):
         self._user_info = {
             'acc': self._account_data['username'],

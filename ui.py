@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import copy
+from traceback import print_exc
 
 # import os
 from PySide6.QtCore import QUrl, Slot, Signal, Qt
@@ -8,7 +10,9 @@ from PySide6.QtWidgets import QMainWindow, QDialog, QTableWidgetItem, QFileDialo
     QMessageBox, QListWidget, QListWidgetItem, QHeaderView
 
 import webbridge
+from itertools import chain
 from global_var import global_var
+from data_db import acc_db, result_db, config_db, nk
 from task import AsyncWorker, AsyncExporter, DbInitializer
 from ui_parts.ui_autobox import Ui_MainWindow
 from ui_parts.ui_edit import Ui_editDialog
@@ -21,30 +25,107 @@ from ui_parts.validator_res_rc import *
 class MainWindowUi(Ui_MainWindow, QMainWindow):
     def __init__(self):
         super().__init__()
+        self._components_status = {}
         self._col_idx = {'index': 0, 'username': 1, 'status': 2, 'manual_vali': 3, 'last_time': 4}
+        self._table_item_dict = {}
         # self._exporter = ExcelExporter()
         self.setupUi(self)
-        # self.show()
-        # self.statusBar.showMessage('Ready.')
-        # self.set_status_text('Ready')
+
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
         self._startup()
-        # self._load()
 
     def _startup(self):
-        self._set_components_status(False)
-        self.set_status_text('')
-        self.btnStart.clicked.connect(self._start_tasks)
-        self.btnEdit.clicked.connect(self._show_edit_dialog)
-        self.btnOutput.clicked.connect(self._export_file)
-        self.btnSelectU.clicked.connect(self._show_select_units_dialog)
+        @Slot(int)
+        def raw_check_bind(state):
+            if state == Qt.Checked.value:
+                self.btnSelectU.setDisabled(True)
+            elif state == Qt.Unchecked.value:
+                self.btnSelectU.setDisabled(False)
 
+        self.checkBoxRaw.stateChanged.connect(raw_check_bind)
+
+        def read_configs():
+            self.spboxThNum.setValue(int(config_db.main_config_db.query(name='threads_num', default=1)))
+            self.checkBoxRaw.setChecked(config_db.main_config_db.query(name='only_export_json', default=False))
+            self.checkBoxSep.setChecked(config_db.main_config_db.query(name='sep_export', default=False))
+
+        read_configs()
+        self.set_status_text('')
+        self._set_components_status(False)
+        self.btnStart.clicked.connect(self._start_tasks)
+
+        @Slot()
+        def export_data():
+            file_dialog = QFileDialog(self)
+
+            @Slot(bool, str)
+            def _show_msgbox(status: bool, text: str):
+                # 创建一个QMessageBox实例
+                message_box = QMessageBox(self)
+                message_box.setText(text)
+                message_box.setStandardButtons(QMessageBox.Ok)
+                if status:
+                    message_box.setWindowTitle("Export Success!")
+                    message_box.setIcon(QMessageBox.Information)
+                else:
+                    message_box.setWindowTitle("Export Failed!")
+                    message_box.setIcon(QMessageBox.Critical)
+                message_box.exec()
+                # self._set_components_status(True)
+
+            if config_db.main_config_db.query(name='only_export_json', default=False):
+                file_dialog.setFileMode(QFileDialog.Directory)
+                file_dialog.setOption(QFileDialog.ShowDirsOnly)
+
+                if file_dialog.exec() == QFileDialog.Accepted:
+                    print(file_dialog.selectedFiles()[0])
+                    self._exporter = AsyncExporter(file_dialog.selectedFiles()[0], json_only=True)
+                    self._exporter.result_signal.connect(_show_msgbox)
+                    self._exporter.status_signal.connect(self.set_status_text)
+                    self._exporter.start()
+
+            else:
+                # file_dialog.setAcceptMode(QFileDialog.AcceptSave)
+                # file_dialog.setNameFilter('Excel Workbook (*.xlsx)')
+                #
+                # if file_dialog.exec() == QFileDialog.Accepted:
+                #     # self._set_components_status(False)
+                #     self._exporter = AsyncExporter(file_dialog.selectedFiles()[0], mode=self.checkBoxSep.isChecked())
+                #     self._exporter.result_signal.connect(_show_msgbox)
+                #     self._exporter.status_signal.connect(self.set_status_text)
+                #     self._exporter.start()
+                _show_msgbox(False, 'This version cannot export xlsx .\nPlease check or wait for updates.')
+                pass
+
+        self.btnOutput.clicked.connect(export_data)
+
+        @Slot(int, str)
+        def raw_check_save(state, name: str):
+            if state == Qt.Checked.value:
+                config_db.main_config_db.update(name=name, value=True)
+            elif state == Qt.Unchecked.value:
+                config_db.main_config_db.update(name=name, value=False)
+
+        self.checkBoxRaw.stateChanged.connect(lambda x: raw_check_save(x, 'only_export_json'))
+        self.checkBoxSep.stateChanged.connect(lambda x: raw_check_save(x, 'sep_export'))
+
+        @Slot(int)
+        def set_threads(v: int):
+            config_db.main_config_db.update(name='threads_num', value=v)
+
+        self.spboxThNum.valueChanged.connect(set_threads)
+
+        @Slot()
         def _db_complete():
             self.set_status_text('Loading accounts')
             try:
                 self._load()
                 self.set_status_text('Ready')
                 self._set_components_status(True)
+                pass
             except Exception as e:
+                print_exc()
                 self.set_status_text(f'Err! {str(e)}')
             del self._db_init
 
@@ -53,153 +134,132 @@ class MainWindowUi(Ui_MainWindow, QMainWindow):
         self._db_init.complete_signal.connect(_db_complete)
         self._db_init.start()
 
-    def _show_edit_dialog(self):
-        self._edit_dialog = EditDialogUi()
-        self._edit_dialog.finished.connect(self._edit_dialog_finished)
-        self._edit_dialog.show()
+        # self._set_components_status(False)
 
-    def _show_select_units_dialog(self):
-        self._selectU_dialog = SelectUnitsDialogUi()
-        # self._selectU_dialog.finished.connect(self._edit_dialog_finished)
-        self._selectU_dialog.show()
+        @Slot()
+        def _show_edit_dialog():
+            @Slot(int)
+            def edit_dialog_finished(result):
+                if result == QDialog.Accepted:
+                    self._load()
+                    if not self.tableWidget.rowCount() == 0:
+                        self.btnStart.setEnabled(True)
 
-    def _export_file(self):
-        file_dialog = QFileDialog(self)
-        file_dialog.setAcceptMode(QFileDialog.AcceptSave)
-        file_dialog.setNameFilter('Excel Workbook (*.xlsx)')
+            self._edit_dialog = EditDialogUi()
+            self._edit_dialog.finished.connect(edit_dialog_finished)
+            self._edit_dialog.show()
 
-        def _show_msgbox(status: bool, text: str):
-            # 创建一个QMessageBox实例
-            message_box = QMessageBox(self)
-            message_box.setText(text)
-            message_box.setStandardButtons(QMessageBox.Ok)
-            if status:
-                message_box.setWindowTitle("Export Success!")
-                message_box.setIcon(QMessageBox.Information)
-            else:
-                message_box.setWindowTitle("Export Failed!")
-                message_box.setIcon(QMessageBox.Critical)
-            message_box.exec()
-            self._set_components_status(True)
+        self.btnEdit.clicked.connect(_show_edit_dialog)
 
-        if file_dialog.exec() == QFileDialog.Accepted:
-            self._set_components_status(False)
-            self._exporter = AsyncExporter(file_dialog.selectedFiles()[0], mode=self.checkBoxSep.isChecked())
-            self._exporter.result_signal.connect(_show_msgbox)
-            self._exporter.status_signal.connect(self.set_status_text)
-            self._exporter.start()
-            # selected_file = file_dialog.selectedFiles()[0]
-            # print("Selected file:", selected_file)
-            # self._exporter.preprocess_data()
-            # self._exporter.export_xlsx(file_dialog.selectedFiles()[0])
-            # _show_success_msgbox('\n'.join(('Successfully export to', file_dialog.selectedFiles()[0])))
-            # try:
-            #     # self._exporter.preprocess_data()
-            #     self._exporter.export_xlsx(file_dialog.selectedFiles()[0])
-            #     _show_success_msgbox('\n'.join(('Successfully export to', file_dialog.selectedFiles()[0])))
-            # except Exception as e:
-            #     traceback.print_exc()
-            #     _show_failed_msgbox('\n'.join(('Export failed.', str(e))))
+        @Slot()
+        def _show_select_units_dialog():
+            self._selectU_dialog = SelectUnitsDialogUi()
+            # self._selectU_dialog.finished.connect(self._edit_dialog_finished)
+            self._selectU_dialog.show()
 
-    def _edit_dialog_finished(self, result):
-        if result == QDialog.Accepted:
-            self._load()
-            if not self.tableWidget.rowCount() == 0:
-                self.btnStart.setEnabled(True)
-
-            # _acc = self._edit_dialog.get_accounts()
-            # global_var.set_ACCOUNTS(_acc)
-            # self._storage_mgr.save_accounts()
-            # print(f"Dialog Info: {global_var.ACCOUNTS}")
-
-        # self._load()
+        self.btnSelectU.clicked.connect(_show_select_units_dialog)
 
     def _load(self):
-        if not global_var.ACCOUNTS:
+        # _acc = acc_db.db.all()
+        if not acc_db.db.all():
             self.btnStart.setEnabled(False)
-        if not global_var.RESULTS:
-            self.btnOutput.setEnabled(False)
+        # if not global_var.RESULTS:
+        #     self.btnOutput.setEnabled(False)
         self.tableWidget.setRowCount(0)
-        self._buttons = {}
+
+        # self._buttons = {}
 
         def _add_table_item():
-            results = global_var.RESULTS
-            accounts = global_var.ACCOUNTS
-            for key in accounts:
-                if accounts[key]:
-                    index_item = QTableWidgetItem(str(key + 1))
-                    if len(accounts[key]) > 2:
-                        if accounts[key][2]:
-                            acc = f'{accounts[key][2]}({accounts[key][0]})'
-                        else:
-                            acc = accounts[key][0]
-                    else:
-                        acc = accounts[key][0]
-                    username_item = QTableWidgetItem(str(acc))
-                    status_item = QTableWidgetItem('Waiting…')
-                    time_item = QTableWidgetItem(str(results[key]['time'] if key in results else ''))
-                    # password_item = QTableWidgetItem(str(global_var.ACCOUNTS[key][1]))
-                    self.tableWidget.insertRow(key)
-                    self.tableWidget.setItem(key, self._col_idx['index'], index_item)
-                    self.tableWidget.setItem(key, self._col_idx['username'], username_item)
-                    self.tableWidget.setItem(key, self._col_idx['status'], status_item)
-                    self.tableWidget.setItem(key, self._col_idx['last_time'], time_item)
-                    self._buttons[accounts[key][0]] = ValidateBtn(acc=accounts[key][0])
-                    self.tableWidget.setCellWidget(key, self._col_idx['manual_vali'], self._buttons[accounts[key][0]])
+            # results = global_var.RESULTS
+            accounts = acc_db.db.all()
+            _query = result_db.get_query()
+            for key, item in enumerate(accounts):
+                username_item = QTableWidgetItem(
+                    str(item['acc'] if not item['alias'] else f"{item['alias']}({item['acc']})"))
+                status_item = QTableWidgetItem('Waiting…')
+                _acc_results = result_db.db.search(_query.acc == item['acc'])
+                time_item = QTableWidgetItem(str(_acc_results[0]['time'] if _acc_results else ''))
+                vali_btn = ValidateBtn(acc=item['acc'])
+                self.tableWidget.insertRow(key)
+                self.tableWidget.setItem(key, self._col_idx['index'], QTableWidgetItem(str(key + 1)))
+                self.tableWidget.setItem(key, self._col_idx['username'], username_item)
+                self.tableWidget.setItem(key, self._col_idx['status'], status_item)
+                self.tableWidget.setItem(key, self._col_idx['last_time'], time_item)
+                self.tableWidget.setCellWidget(key, self._col_idx['manual_vali'], vali_btn)
+                self._table_item_dict[item['acc']] = {'status': status_item, 'vali_btn': vali_btn, 'time': time_item}
 
         self.tableWidget.horizontalHeader().setSectionResizeMode(self._col_idx['index'], QHeaderView.ResizeToContents)
         _add_table_item()
 
-    @Slot(tuple)
-    def set_acc_status_text(self, info: tuple):
+    @Slot(str, str, int)
+    def set_acc_status_text(self, acc: str, text: str, color: int = None):
         """
         设置status
-        :param info: tuple, (self._idx, 'status_str', color: qt.color（可选）)
-        :return:
+        :param color: (Unavail) Qt Color
+        :param acc: account name,
+        :param text: text
         """
+        self._table_item_dict[acc]['status'].setText(text)
         # acc_map = global_var.ACCMAP
-        if len(info) == 3:
-            brush = info[2]
-        else:
-            brush = None
-        status_item = QTableWidgetItem(info[1])
+        # if len(info) == 3:
+        #     brush = info[2]
+        # else:
+        #     brush = None
+        # status_item = QTableWidgetItem(info[1])
         # status_item.setForeground(brush)
-        self.tableWidget.setItem(info[0], self._col_idx['status'], status_item)
+        # self.tableWidget.setItem(info[0], self._col_idx['status'], status_item)
 
     @Slot(str)
     def set_status_text(self, text):
         self.statusBar.showMessage(f'Status: {text}...')
 
-    @Slot(tuple)
-    def set_last_time(self, info):
+    @Slot(str, str)
+    def set_last_time(self, acc: str, time: str):
         """
         设置last time
-        :param info: tuple, (self._idx, str: datetime)
-        :return:
+        :param time: last time
+        :param acc: account name
         """
-        time_item = QTableWidgetItem(info[1])
-        self.tableWidget.setItem(info[0], self._col_idx['last_time'], time_item)
+        self._table_item_dict[acc]['time'].setText(time)
 
     @Slot(str, str)
     def acquire_m_vali(self, acc, url):
-        acc_map = global_var.ACCMAP
-        self._buttons[acc].set_url(url)
-        self._buttons[acc].enable_self()
-        self.set_acc_status_text((acc_map[acc], 'Need manual validate!', Qt.red))
+        self._table_item_dict[acc]['vali_btn'].set_url(url)
+        self._table_item_dict[acc]['vali_btn'].enable_self()
+        self.set_acc_status_text(acc, 'Need manual validate!')
 
     @Slot(str)
     def task_complete(self, text):
         self._set_components_status(True)
         self.set_status_text(text)
-        if global_var.RESULTS:
+        if result_db.db.all():
             self.btnOutput.setEnabled(True)
         del self._worker
 
     def _set_components_status(self, status: bool):
-        for item in self.groupBox.findChildren(QWidget):
-            item.setEnabled(status)
-        self.btnStart.setEnabled(status)
-        self.btnOutput.setEnabled(status)
+        pass
+        if status:
+            self.groupBox.setEnabled(True)
+            self.verticalWidget_2.setEnabled(True)
+            # 遍历所有组件
+            for widget in chain(self.groupBox.findChildren(QWidget), self.verticalWidget_2.findChildren(QWidget)):
+                # 恢复当前组件的原始状态
+                widget.setEnabled(self._components_status.get(widget, True))
+            self._components_status = {}
+        else:
+            # 遍历所有组件
+            for widget in chain(self.groupBox.findChildren(QWidget), self.verticalWidget_2.findChildren(QWidget)):
+                # 保存当前组件的状态
+                self._components_status[widget] = copy.deepcopy(widget.isEnabled())
+                # 禁用当前组件
+                # widget.setEnabled(False)
+            self.groupBox.setEnabled(False)
+            self.verticalWidget_2.setEnabled(False)
+
+        # for item in self.groupBox.findChildren(QWidget):
+        #     item.setEnabled(status)
+        # self.btnStart.setEnabled(status)
+        # self.btnOutput.setEnabled(status)
 
     def _start_tasks(self):
         self._set_components_status(False)
@@ -207,34 +267,24 @@ class MainWindowUi(Ui_MainWindow, QMainWindow):
         self._worker.status_signal.connect(self.set_status_text)
         self._worker.start()
 
-        # from task import Starter
-        # obj = Starter(max_size=self.spboxThNum.value(), mw_obj=self)
-        # asyncio.run(obj.start(), debug=True)
-
 
 class EditDialogUi(Ui_editDialog, QDialog):
     def __init__(self):
         super().__init__()
-        self._accounts = {}
+        self._cell_key = ('acc', 'pwd', 'alias')
         self.setupUi(self)
         self._load()
         self.btnAdd.clicked.connect(self._add_account)
         self.btnRm.clicked.connect(self._remove_account)
-        # self.btnSvts.clicked.connect(self._save_account)
-        # self.tableWidget.cellClicked.connect(self._update_input)
         self.buttonBox.rejected.connect(self._discard)  # Discard 按钮点击事件
         self.buttonBox.accepted.connect(self._save)  # Save 按钮点击事件
 
     def _add_account(self):
-        # username_item = QTableWidgetItem(str(self.inputUn.text()))
-        # password_item = QTableWidgetItem(str(self.inputPw.text()))
         row_position = self.tableWidget.rowCount()  # 获取当前行数
         self.tableWidget.insertRow(row_position)  # 插入新行
-        self.tableWidget.setItem(row_position, 2, QTableWidgetItem())
-        # self.tableWidget.setItem(row_position, 1, password_item)
+        for col in range(self.tableWidget.columnCount()):
+            self.tableWidget.setItem(row_position, col, QTableWidgetItem())
         self.tableWidget.setCurrentCell(row_position, 0)
-        # self.inputUn.setText('')
-        # self.inputPw.setText('')
 
     def _remove_account(self):
         # selected_items = self.tableWidget.selectedItems()
@@ -244,75 +294,51 @@ class EditDialogUi(Ui_editDialog, QDialog):
             for item in selected_ranges:
                 for i in range(item.topRow(), item.bottomRow() + 1):
                     selected_items.append(self.tableWidget.item(i, 2))
-
             for item in selected_items:
                 self.tableWidget.removeRow(item.row())
 
-        # if selected_items:
-        #     self.tableWidget.removeRow(self.tableWidget.selectedItems()[0].row())
-        # else:
-        #     pass
-
-    # def _update_input(self):
-    #     selected_items = self.tableWidget.selectedItems()
-    #     if selected_items:
-    #         username = selected_items[0].text()
-    #         password = selected_items[1].text()
-    #         self.inputUn.setText(username)
-    #         self.inputPw.setText(password)
-    #     else:
-    #         self.inputUn.setText("")
-    #         self.inputPw.setText("")
-
-    # def _save_account(self):
-    #     if self.tableWidget.selectedItems():
-    #         username_item = QTableWidgetItem(str(self.inputUn.text()))
-    #         password_item = QTableWidgetItem(str(self.inputPw.text()))
-    #         row_position = self.tableWidget.selectedItems()[0].row()  # 获取当前行数
-    #         self.tableWidget.setItem(row_position, 0, username_item)
-    #         self.tableWidget.setItem(row_position, 1, password_item)
-
     def _save(self):
-        # cell_contents = []
         temp_set = set()
-        temp_dict = {}
-        index = -1
+        _query = acc_db.get_query()
         for row in range(self.tableWidget.rowCount()):
-            temp_list = []
+            temp_dict = {}
             for col in range(self.tableWidget.columnCount()):
                 item = self.tableWidget.item(row, col)
                 if item and (item.text() != '' or col > 1):
-                    temp_list.append(item.text())
+                    temp_dict[self._cell_key[col]] = item.text()
                 else:
                     break
             else:
-                if temp_list[0] not in temp_set:
-                    index += 1
-                    temp_set.add(temp_list[0])
-                    temp_dict[index] = temp_list
+                if temp_dict[self._cell_key[0]] not in temp_set:
+                    temp_set.add(temp_dict[self._cell_key[0]])
+                    acc_db.db.upsert(temp_dict, _query.acc == temp_dict[self._cell_key[0]])
                 # temp_dict[index] = temp_list
-        global_var.set_ACCOUNTS(temp_dict)
+        # global_var.set_ACCOUNTS(acc_dict)
+        acc_db.clean(key='acc', key_list=temp_set)
+        result_db.clean(key='acc', key_list=[item['acc'] for item in acc_db.db])
         print("用户点击了保存按钮")
         self.accept()
 
     def _load(self):
-        for key in global_var.ACCOUNTS:
-            if global_var.ACCOUNTS[key]:
-                username_item = QTableWidgetItem(str(global_var.ACCOUNTS[key][0]))
-                password_item = QTableWidgetItem(str(global_var.ACCOUNTS[key][1]))
-                alias_item = QTableWidgetItem(str(global_var.ACCOUNTS[key][2]
-                                                  if len(global_var.ACCOUNTS[key]) >= 3 else ''))
-                self.tableWidget.insertRow(key)
-                self.tableWidget.setItem(key, 0, username_item)
-                self.tableWidget.setItem(key, 1, password_item)
-                self.tableWidget.setItem(key, 2, alias_item)
+        for row, item in enumerate(acc_db.db.all()):
+            self.tableWidget.insertRow(row)
+            for i, key in enumerate(self._cell_key):
+                self.tableWidget.setItem(row, i, QTableWidgetItem(str(item[key])))
+
+    # for key in global_var.ACCOUNTS:
+    #     if global_var.ACCOUNTS[key]:
+    #         username_item = QTableWidgetItem(str(global_var.ACCOUNTS[key][0]))
+    #         password_item = QTableWidgetItem(str(global_var.ACCOUNTS[key][1]))
+    #         alias_item = QTableWidgetItem(str(global_var.ACCOUNTS[key][2]
+    #                                           if len(global_var.ACCOUNTS[key]) >= 3 else ''))
+    #         self.tableWidget.insertRow(key)
+    #         self.tableWidget.setItem(key, 0, username_item)
+    #         self.tableWidget.setItem(key, 1, password_item)
+    #         self.tableWidget.setItem(key, 2, alias_item)
 
     def _discard(self):
         print("用户点击了放弃按钮")
         self.reject()
-
-    def get_accounts(self):
-        return self._accounts
 
 
 class ManualValiDialogUi(Ui_MValiDialog, QDialog):
@@ -391,9 +417,12 @@ class SelectUnitsDialogUi(Ui_selectUnitDialog, QDialog):
             lambda: self._search(list_widget=self.listUnS, keyword=self.editSchUnS.text()))
 
     def _load_list_items(self):
-        _nicknames = self._global_var.NICKNAMES
+        # _nicknames = self._global_var.NICKNAMES
+        _nicknames = nk.nicknames
         all_units = self._game_data.all_units_simple_dict
-        selected_units = self._global_var.SELECTEDUNITS if self._global_var.SELECTEDUNITS else all_units.keys()
+        # selected_units = self._global_var.SELECTEDUNITS if self._global_var.SELECTEDUNITS else all_units.keys()
+        selected_units = config_db.selected_units_db.query('units', [])
+        selected_units = selected_units if selected_units else all_units.keys()
         complement_keys = set(all_units.keys()) - set(selected_units)
         for k in complement_keys:
             item = UnitListItem((k, _nicknames[k], all_units[k])) if k in _nicknames.keys() else UnitListItem(
@@ -410,8 +439,8 @@ class SelectUnitsDialogUi(Ui_selectUnitDialog, QDialog):
 
     @Slot()
     def _accepted(self):
-        _units_selected = [self.listS.item(i).unit_id for i in range(self.listS.count())]
-        self._global_var.set_SELECTEDUNITS(_units_selected)
+        # _units_selected = [self.listS.item(i).unit_id for i in range(self.listS.count())]
+        config_db.selected_units_db.update('units', [self.listS.item(i).unit_id for i in range(self.listS.count())])
         pass
 
     @Slot()

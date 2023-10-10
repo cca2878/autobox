@@ -6,7 +6,7 @@ ROOT_DIR = os.path.dirname(os.path.abspath(sys.argv[0]))
 CACHE_DIR = os.path.join(ROOT_DIR, 'cache')
 # DATA_DIR = os.path.join(CACHE_DIR, 'data')
 # CONFIG_PATH = os.path.join(ROOT_DIR, 'autopcr/http_server/config')  # 兼容旧版
-DIRS = ['data', 'db', 'manifest', 'token']
+DIRS = ['db', 'manifest', 'token']
 for d in DIRS:
     _dir = os.path.join(CACHE_DIR, d)
     if not os.path.exists(_dir):
