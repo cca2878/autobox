@@ -115,7 +115,8 @@ class apiclient(Container["apiclient"]):
             return obj
 
     async def _request_internal(self, request: Request[TResponse]) -> TResponse:
-        if not request: return None
+        if not request:
+            return None
         print(f'{self.name} requested {request.__class__.__name__} at /{request.url}')
         key = apiclient._createkey()
         request.viewer_id = b64encode(apiclient._encrypt(str(self.viewer_id).encode('utf8'), key)).decode(

@@ -1528,7 +1528,8 @@ class UserInfo(BaseModel):
     stamina_full_recovery_time: int = None
     arena_rank: int = None
     invite_accept_flag: int = None
-
+    last_ac: str = None
+    last_ac_time: int = None
 
 class UserItemParameter(BaseModel):
     item_id: int = None
@@ -1538,6 +1539,7 @@ class UserItemParameter(BaseModel):
 class UserJewel(BaseModel):
     jewel: int = None
     free_jewel: int = None
+    paid_jewel: int = None
 
 
 class UserMissionInfo(BaseModel):

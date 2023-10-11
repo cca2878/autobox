@@ -26,7 +26,7 @@ class PcrAccount(object):
             'account': self._account_data['username'],
             'password': self._account_data['password'],
             'channel': 1,
-            'platform': 2
+            'platform': 2,
         })
 
     async def login(self):
@@ -44,6 +44,7 @@ class PcrAccount(object):
         req = LoadIndexRequest()
         req.carrier = 'CR_NMSL'
         self._user_json = (await self._client.request(req)).json()
+        pass
 
     @property
     def sum(self):
