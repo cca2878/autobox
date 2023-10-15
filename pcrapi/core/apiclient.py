@@ -10,9 +10,9 @@ from hashlib import md5
 from Crypto.Cipher import AES
 from base64 import b64encode, b64decode
 from traceback import print_exc
-from ..constants import DEFAULT_HEADERS, IOS_HEADERS
+from ..constants import DEFAULT_HEADERS, IOS_HEADERS, refresh_headers
 
-import json
+from re import search
 from enum import Enum
 
 
@@ -165,6 +165,15 @@ class apiclient(Container["apiclient"]):
 
         if response.data_headers.viewer_id:
             self.viewer_id = int(response.data_headers.viewer_id)
+
+        if "check/game_start" == request.url and "store_url" in response0['data_headers']:
+            version = search(r'v?([4-9]\.\d\.\d)(\.\d)*', response0['data_headers']["store_url"]).group(0)
+            self._headers['APP-VER'] = version
+            refresh_headers(version)
+            raise ApiException(f"版本已更新:{version}",
+                               response.data.server_error.status,
+                               response.data_headers.result_code
+                               )
 
         if response.data.server_error and "维护" not in response.data.server_error.message:
             print(f'pcrclient: /{request.url} api failed {response.data.server_error}')

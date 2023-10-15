@@ -1,7 +1,7 @@
 PySide6~=6.5.3
 SQLAlchemy~=2.0.21
 Brotli~=1.1.0
-pydantic~=1.10.13
+pydantic<2.0.0
 UnityPy~=1.10.3
 requests~=2.31.0
 msgpack~=1.0.7

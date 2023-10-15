@@ -3,23 +3,17 @@
 ################################################################################
 ## Form generated from reading UI file 'autobox.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.5.2
+## Created by: Qt User Interface Compiler version 6.5.3
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
 
-from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
-    QMetaObject, QObject, QPoint, QRect,
-    QSize, QTime, QUrl, Qt)
-from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
-    QFont, QFontDatabase, QGradient, QIcon,
-    QImage, QKeySequence, QLinearGradient, QPainter,
-    QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QAbstractItemView, QApplication, QCheckBox, QGroupBox,
-    QHBoxLayout, QHeaderView, QLabel, QMainWindow,
-    QPushButton, QSizePolicy, QSpinBox, QStatusBar,
-    QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
-import main_res_rc
+from PySide6.QtCore import (QCoreApplication, QMetaObject, QRect,
+                            QSize)
+from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QGroupBox,
+                               QHBoxLayout, QLabel, QPushButton, QSizePolicy, QSpinBox, QStatusBar,
+                               QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
+
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -50,7 +44,7 @@ class Ui_MainWindow(object):
         self.checkBoxSep.setSizePolicy(sizePolicy1)
         self.btnEdit = QPushButton(self.groupBox)
         self.btnEdit.setObjectName(u"btnEdit")
-        self.btnEdit.setGeometry(QRect(270, 20, 91, 31))
+        self.btnEdit.setGeometry(QRect(270, 20, 100, 30))
         self.labelThreads = QLabel(self.groupBox)
         self.labelThreads.setObjectName(u"labelThreads")
         self.labelThreads.setGeometry(QRect(20, 20, 51, 21))
@@ -61,7 +55,7 @@ class Ui_MainWindow(object):
         self.spboxThNum.setMaximum(8)
         self.btnSelectU = QPushButton(self.groupBox)
         self.btnSelectU.setObjectName(u"btnSelectU")
-        self.btnSelectU.setGeometry(QRect(270, 60, 91, 31))
+        self.btnSelectU.setGeometry(QRect(270, 60, 100, 30))
         self.checkBoxRaw = QCheckBox(self.groupBox)
         self.checkBoxRaw.setObjectName(u"checkBoxRaw")
         self.checkBoxRaw.setGeometry(QRect(20, 50, 201, 20))
@@ -95,9 +89,7 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_2.addWidget(self.btnOutput)
 
-
         self.horizontalLayout.addWidget(self.verticalWidget_2)
-
 
         self.verticalLayout_3.addLayout(self.horizontalLayout)
 
@@ -149,16 +141,17 @@ class Ui_MainWindow(object):
         self.retranslateUi(MainWindow)
 
         QMetaObject.connectSlotsByName(MainWindow)
+
     # setupUi
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Autobox", None))
         self.groupBox.setTitle(QCoreApplication.translate("MainWindow", u"Settings", None))
         self.checkBoxSep.setText(QCoreApplication.translate("MainWindow", u"Separate info&&data when export", None))
-        self.btnEdit.setText(QCoreApplication.translate("MainWindow", u"Edit accounts", None))
+        self.btnEdit.setText(QCoreApplication.translate("MainWindow", u"Edit accounts...", None))
         self.btnEdit.setProperty("test", QCoreApplication.translate("MainWindow", u"abc", None))
         self.labelThreads.setText(QCoreApplication.translate("MainWindow", u"Threads:", None))
-        self.btnSelectU.setText(QCoreApplication.translate("MainWindow", u"Select Units", None))
+        self.btnSelectU.setText(QCoreApplication.translate("MainWindow", u"Select Units...", None))
         self.checkBoxRaw.setText(QCoreApplication.translate("MainWindow", u"Only export raw data json", None))
         self.btnStart.setText(QCoreApplication.translate("MainWindow", u"Start", None))
         self.btnOutput.setText(QCoreApplication.translate("MainWindow", u"Export", None))
@@ -173,4 +166,3 @@ class Ui_MainWindow(object):
         ___qtablewidgetitem4 = self.tableWidget.horizontalHeaderItem(4)
         ___qtablewidgetitem4.setText(QCoreApplication.translate("MainWindow", u"LastTime", None));
     # retranslateUi
-

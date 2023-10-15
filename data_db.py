@@ -1,16 +1,31 @@
 import json
 import os
+from datetime import datetime, timezone
 
 import msgpack
 from tinydb import TinyDB, Query, Storage
-# from typing import Union
 from zstandard import ZstdCompressor, ZstdDecompressor
 
 import constants
 
 
-class Zstd(object):
-    level = 3
+class TimeUtils(object):
+    format1 = "%Y-%m-%d %H:%M:%S"
+
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def stamp_utcnow() -> int:
+        return int(datetime.now(timezone.utc).timestamp())
+
+    @staticmethod
+    def obj_localtime(utc_stamp: int) -> datetime:
+        return datetime.fromtimestamp(utc_stamp, tz=timezone.utc).astimezone(datetime.now().astimezone().tzinfo)
+
+
+class ZstdUtils(object):
+    level = 6
 
     @classmethod
     def compress(cls, data: bytes) -> bytes:
@@ -30,7 +45,7 @@ class _MsgpackStorage(Storage):
     def read(self):
         try:
             with open(self.filename, 'rb') as handle:
-                return msgpack.unpackb(Zstd.decompress(handle.read()))
+                return msgpack.unpackb(ZstdUtils.decompress(handle.read()), strict_map_key=False)
         except msgpack.FormatError:
             return None  # (3)
         except msgpack.StackError:
@@ -40,7 +55,7 @@ class _MsgpackStorage(Storage):
 
     def write(self, data):
         with open(self.filename, 'wb') as handle:
-            handle.write(Zstd.compress(msgpack.packb(data)))
+            handle.write(ZstdUtils.compress(msgpack.packb(data)))
 
     def close(self):  # (4)
         pass

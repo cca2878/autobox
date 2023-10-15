@@ -5,10 +5,11 @@ from traceback import print_exc
 from PySide6.QtCore import QThread, Signal, QObject, Slot
 from PySide6.QtCore import Qt  # 导入Qt模块
 
-from data import Account, ExcelExporter, gamedata
-from data_new import PcrAccount, JsonExporter
+# from datetime import datetime, timezone
+from data import ExcelExporter, gamedata
+from data import PcrAccount, JsonExporter
 # from global_var import global_var
-from data_db import acc_db, result_db
+from data_db import acc_db, result_db, TimeUtils
 from pcrapi.bsdk.validator import validate_dict
 
 
@@ -55,6 +56,7 @@ class AsyncExporter(QThread):
                 self.result_signal.emit(True, '\n\n'.join(('Successfully export xlsx to', self._file)))
                 self.status_signal.emit('Export success.')
             except Exception as e:
+                print_exc()
                 self.result_signal.emit(False, '\n\n'.join(('Export failed.', str(e))))
                 self.status_signal.emit('Export failed')
 
@@ -75,12 +77,8 @@ class AsyncExporter(QThread):
         else:
             export_xlsx()
 
-
-
     def export_json(self):
         print("Selected path:", self._file)
-
-
 
 
 class AsyncWorker(QThread):
@@ -211,7 +209,7 @@ class Consumer(QObject):
         super().__init__()
         self._queue = queue
 
-    def _emit_status_signal(self, acc:str, text:str, color=None):
+    def _emit_status_signal(self, acc: str, text: str, color=None):
         self.status_signal.emit(acc, text, color)
 
     async def consume(self):
@@ -232,8 +230,9 @@ class Consumer(QObject):
             self._emit_status_signal(_item['acc'], 'Gathering data...')
             _sum = _acc_obj.sum
             _query = result_db.get_query()
+            result_db.db.remove(_query.acc == _item['acc'])
             result_db.db.upsert(_sum, _query.acc == _item['acc'])
-            self.time_signal.emit(_item['acc'], _sum['time'])
+            self.time_signal.emit(_item['acc'], TimeUtils.obj_localtime(_sum['time']).strftime("%Y-%m-%d %H:%M:%S"))
             self._emit_status_signal(_item['acc'], 'Complete!', Qt.green)
             # results.append(_sum)
             # 任务完成

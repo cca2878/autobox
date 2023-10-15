@@ -1,19 +1,16 @@
-import os
+# import os
 import sys
 
 # from PySide6.QtCore import Qt
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtSvgWidgets import QSvgWidget
 from PySide6.QtWidgets import QApplication, QSplashScreen
+
 # noinspection PyUnresolvedReferences
 from main_res_rc import *
 
-MAIN_PATH = os.path.dirname(os.path.abspath(__file__))
-
 if __name__ == '__main__':
-    # global MAIN_PATH
     # os.environ["QTWEBENGINE_REMOTE_DEBUGGING"] = "127.0.0.1:9222"
-    # print(QStyleFactory.keys())
     app = QApplication(sys.argv)
     splash = QSplashScreen()
     svg = QSvgWidget(":/autobox.svg", splash)
@@ -25,7 +22,8 @@ if __name__ == '__main__':
     splash.move((screen_size.width() - splash_size.width()) / 2, (screen_size.height() - splash_size.height()) / 2)
     splash.show()
     splash.raise_()
-    # splash.showMessage("Loading...", alignment=Qt.AlignCenter)
+    # splash.showMessage("Loading...", alignment=Qt.AlignBaseline)
+
     import ui
     mW = ui.MainWindowUi()
     mW.show()

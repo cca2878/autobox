@@ -58,12 +58,12 @@
           <rect>
            <x>270</x>
            <y>20</y>
-           <width>91</width>
-           <height>31</height>
+           <width>100</width>
+           <height>30</height>
           </rect>
          </property>
          <property name="text">
-          <string>Edit accounts</string>
+          <string>Edit accounts...</string>
          </property>
          <property name="test" stdset="0">
           <string>abc</string>
@@ -103,12 +103,12 @@
           <rect>
            <x>270</x>
            <y>60</y>
-           <width>91</width>
-           <height>31</height>
+           <width>100</width>
+           <height>30</height>
           </rect>
          </property>
          <property name="text">
-          <string>Select Units</string>
+          <string>Select Units...</string>
          </property>
         </widget>
         <widget class="QCheckBox" name="checkBoxRaw">

@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'edit.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.5.2
+## Created by: Qt User Interface Compiler version 6.5.3
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -21,6 +21,11 @@ class Ui_editDialog(object):
         editDialog.resize(360, 460)
         self.verticalLayout = QVBoxLayout(editDialog)
         self.verticalLayout.setObjectName(u"verticalLayout")
+        self.btnImport = QPushButton(editDialog)
+        self.btnImport.setObjectName(u"btnImport")
+
+        self.verticalLayout.addWidget(self.btnImport)
+
         self.horizontalLayout = QHBoxLayout()
         self.horizontalLayout.setObjectName(u"horizontalLayout")
         self.btnAdd = QPushButton(editDialog)
@@ -76,6 +81,7 @@ class Ui_editDialog(object):
 
     def retranslateUi(self, editDialog):
         editDialog.setWindowTitle(QCoreApplication.translate("editDialog", u"Edit accounts", None))
+        self.btnImport.setText(QCoreApplication.translate("editDialog", u"Import...", None))
         self.btnAdd.setText(QCoreApplication.translate("editDialog", u"Add", None))
         self.btnRm.setText(QCoreApplication.translate("editDialog", u"Remove", None))
         ___qtablewidgetitem = self.tableWidget.horizontalHeaderItem(0)
