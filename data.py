@@ -343,7 +343,7 @@ class ExcelExporter(object):
                             'sk1_level': 0 if len(unit['main_skill']) < 1 else
                             unit['main_skill'][0]['skill_level'],
                             'sk2_level': 0 if len(unit['main_skill']) < 2 else
-                            unit['main_skill'][0]['skill_level'],
+                            unit['main_skill'][1]['skill_level'],
                             'skex_level': 0 if len(unit['ex_skill']) < 1 else
                             unit['ex_skill'][0]['skill_level'],
                             'equip': [],

@@ -10,6 +10,7 @@ from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWidgets import QMainWindow, QDialog, QTableWidgetItem, QFileDialog, QPushButton, QWidget, \
     QMessageBox, QListWidget, QListWidgetItem, QHeaderView
 
+from data import gamedata
 import webbridge
 from data_db import acc_db, result_db, config_db, nk, TimeUtils
 from task import AsyncWorker, AsyncExporter, DbInitializer
@@ -493,7 +494,7 @@ class SelectUnitsDialogUi(Ui_selectUnitDialog, QDialog):
 
     def __init__(self):
         super().__init__()
-        from data import gamedata
+
         self._game_data = gamedata
         self.setupUi(self)
         self._load_list_items()
@@ -541,7 +542,7 @@ class SelectUnitsDialogUi(Ui_selectUnitDialog, QDialog):
     def _accepted(self):
         _units_selected = [self.listS.item(i).unit_id for i in range(self.listS.count())]
         config_db.selected_units_db.update('units', _units_selected if _units_selected else
-        list(self._game_data.all_units_simple_dict.keys()))
+                                           list(self._game_data.all_units_simple_dict.keys()))
 
     @Slot()
     def _discard(self):
