@@ -13,6 +13,7 @@ from openpyxl.worksheet.worksheet import Worksheet
 from data_db import nk, config_db, result_db, acc_db, TimeUtils
 from pcrapi.core import pcrclient
 from pcrapi.db import database, dbstart
+from pcrapi.db.dbmgr import instance as dbmgr
 from pcrapi.model.requests import LoadIndexRequest
 
 
@@ -307,7 +308,7 @@ class ExcelExporter(object):
             _data = result_db.db.all()
             mem_list = [15, 30, 100, 120, 150, 50]
             for i, user_sum in enumerate(_data):
-                if 'pdata' not in user_sum:
+                if 'pdata' not in user_sum or user_sum['pdata'].get('db_ver', '') != f'{dbmgr.ver}':
                     raw_dict = json.loads(user_sum['json'])
                     raw_info = raw_dict['user_info']
                     acc_q = acc_db.get_query()
@@ -394,9 +395,10 @@ class ExcelExporter(object):
                         tmp_dict['status'] = tmp_status
                         user_units[unit_key] = tmp_dict
 
-                    self._data[user_sum['acc']] = {'user_info': user_info, 'user_units': user_units}
+                    self._data[user_sum['acc']] = {'user_info': user_info, 'user_units': user_units,
+                                                   'db_ver': f'{dbmgr.ver}'}
                     rst_q = result_db.get_query()
-                    result_db.db.upsert({'pdata': {'user_info': user_info, 'user_units': user_units}},
+                    result_db.db.upsert({'pdata': self._data[user_sum['acc']]},
                                         rst_q['acc'] == user_sum['acc'])
                 else:
                     self._data[user_sum['acc']] = user_sum['pdata']
