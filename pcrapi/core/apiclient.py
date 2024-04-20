@@ -57,8 +57,9 @@ class apiclient(Container["apiclient"]):
     _requestid: str = ''
     _sessionid: str = ''
 
-    def __init__(self, platform):
+    def __init__(self, account):
         super().__init__()
+        platform = account
         self._headers = {}
         if platform == 2:
             for key in DEFAULT_HEADERS.keys():
@@ -167,7 +168,7 @@ class apiclient(Container["apiclient"]):
             self.viewer_id = int(response.data_headers.viewer_id)
 
         if "check/game_start" == request.url and "store_url" in response0['data_headers']:
-            version = search(r'v?([4-9]\.\d\.\d)(\.\d)*', response0['data_headers']["store_url"]).group(0)
+            version = search(r'_v?([4-9]\.\d\.\d).*?_', response0['data_headers']["store_url"]).group(1)
             self._headers['APP-VER'] = version
             refresh_headers(version)
             raise ApiException(f"版本已更新:{version}",
