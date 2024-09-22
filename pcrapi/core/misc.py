@@ -1,7 +1,6 @@
-import traceback
 from .base import Component, RequestHandler
 from .apiclient import apiclient, ApiException, NetworkException
-from ..model.modelbase import *
+from pcrapi.game.model.modelbase import *
 from traceback import print_exc
 
 

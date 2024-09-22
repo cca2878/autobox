@@ -1,62 +1,85 @@
+from pcrapi.game.model.enums import eMissionStatusType
+from pcrapi.game.model.requests import LoadIndexRequest, HomeIndexRequest
 from .base import Component, RequestHandler
 from .apiclient import apiclient, ApiException
-from ..bsdk.bsdkclient import bsdkclient
-import asyncio, json, re, os, random
-from ..model.models import *
+from .sdkclient import sdkclient
+import json, os, random
+from pcrapi.game.model.sdkrequests import *
 from ..constants import CACHE_DIR
 import hashlib
 
+from ..game.model.requests import DailyTaskTopRequest
+from ..util.error import *
+
 
 class sessionmgr(Component[apiclient]):
-    def __init__(self, account, *arg, **kwargs):
+    def __init__(self, sdk: sdkclient, *arg, **kwargs):
         super().__init__()
         self.cacheDir = os.path.join(CACHE_DIR, 'token')
-        self.bsdk = bsdkclient(account, *arg, **kwargs)
-        self._platform = self.bsdk.platform
-        self._channel = self.bsdk.channel
-        self._account = account
+        self.sdk = sdk
+        self._platform = self.sdk.platform_id
+        self._channel = self.sdk.channel
+        self._account: str = sdk.account
         self._logged = False
         self.auto_relogin = True
         self._sdkaccount = None
         if not os.path.exists(self.cacheDir):
             os.makedirs(self.cacheDir)
-        self.cacheFile = os.path.join(self.cacheDir, hashlib.md5(account['account'].encode('utf-8')).hexdigest())
-
-    def register_to(self, container: apiclient):
-        container._headers['PLATFORM'] = str(self._account['platform'])
-        container._headers['PLATFORM-ID'] = str(self._account['platform'])
-        container._headers['CHANNEL-ID'] = str(self._account['channel'])
-        return super().register_to(container)
+        self.cacheFile = os.path.join(self.cacheDir, hashlib.md5(self._account.encode('utf-8')).hexdigest())
 
     async def _bililogin(self):
-        uid, access_key = await self.bsdk.login()
+        uid, access_key = await self.sdk.login()
         self._sdkaccount = {
-            'uid': uid,
-            'access_key': access_key
+                'uid': uid,
+                'access_key': access_key
         }
         with open(self.cacheFile, 'w') as fp:
             json.dump(self._sdkaccount, fp)
-
+    
     async def _ensure_token(self, next: RequestHandler):
-        while True:
-            if self._sdkaccount and self._sdkaccount['access_key']:
-                try:
-                    req = ToolSdkLoginRequest(
-                        uid=self._sdkaccount['uid'],
-                        access_key=self._sdkaccount['access_key'],
-                        platform=str(self._platform),
-                        channel_id=str(self._channel)
-                    )
-                    if not (await next.request(req)).is_risk:
-                        break
-                except ApiException:
-                    pass
-
-            self._sdkaccount = None
-            await self._bililogin()
-
-        from ..bsdk.validator import validate_dict
-        validate_dict[self._account['account']] = "ok"
+        try:
+            for _ in range(3):
+                if self._sdkaccount and self._sdkaccount['access_key']:
+                    try:
+                        req = ToolSdkLoginRequest(
+                            uid=self._sdkaccount['uid'],
+                            access_key=self._sdkaccount['access_key'],
+                            platform=str(self._platform),
+                            channel_id=str(self._channel)
+                        )
+                        if not (await next.request(req)).is_risk:
+                            break
+                        else:
+                            for _ in range(5):
+                                captch_done = await self.sdk.do_captcha()
+                                req = ToolSdkLoginRequest(
+                                    uid=self._sdkaccount['uid'],
+                                    access_key=self._sdkaccount['access_key'],
+                                    platform=str(self._platform),
+                                    channel_id=str(self._channel),
+                                    challenge=captch_done['challenge'],
+                                    validate_=captch_done['validate'],
+                                    seccode=captch_done['validate']+"|jordan",
+                                    captcha_type='1',
+                                    image_token='',
+                                    captcha_code='',
+                                )
+                                if not (await next.request(req)).is_risk:
+                                    break
+                            else:
+                                raise PanicError("登录失败，帐号存在风险")
+                    except ApiException:
+                        pass
+                
+                self._sdkaccount = None
+                await self._bililogin()
+            else:
+                raise PanicError("登录失败")
+        except Exception:
+            raise
+        # finally:
+        #     from ..sdk.validator import validate_dict, ValidateInfo
+        #     validate_dict[self._account] = ValidateInfo(status="ok")
 
     async def _login(self, next: RequestHandler):
         if os.path.exists(self.cacheFile):
@@ -64,23 +87,27 @@ class sessionmgr(Component[apiclient]):
                 self._sdkaccount = json.load(fp)
         while True:
             try:
-                self._container.urlroot = f'http://{(await next.request(SourceIniIndexRequest())).server[0]}'.replace(
-                    '\t', '')
+                current = self._container.servers[self._container.active_server]
+                self._container.servers = [f'https://{server}'.replace('\t', '') for server in (await next.request(SourceIniIndexRequest())).server]
+                try:
+                    self._container.active_server = self._container.servers.index(current)
+                except ValueError:
+                    self._container.active_server = 0
                 manifest = await next.request(SourceIniGetMaintenanceStatusRequest())
                 self._container._headers['MANIFEST-VER'] = manifest.required_manifest_ver
                 if manifest.maintenance_message:
-                    raise ValueError(manifest.maintenance_message)
-
+                    raise PanicError(manifest.maintenance_message)
+                
                 await self._ensure_token(next)
-
+                
                 req = CheckGameStartRequest()
                 req.apptype = 0
                 req.campaign_data = ''
                 req.campaign_user = random.randint(0, 100000) & ~1
-
+                
                 if not (await next.request(req)).now_tutorial:
-                    raise ValueError("账号未过完教程")
-
+                    raise PanicError("账号未过完教程")
+                
                 # await next.request(CheckAgreementRequest())
 
                 req = LoadIndexRequest()
@@ -92,7 +119,13 @@ class sessionmgr(Component[apiclient]):
                 req.gold_history = 0
                 req.is_first = 1
                 req.tips_id_list = []
-                await next.request(req)
+                resp = await next.request(req)
+
+                if resp.quest_list and any(1 for quest in resp.quest_list if quest.quest_id == 11008001 and quest.result_type == eMissionStatusType.AlreadyReceive): # clear normal 8-1 and unlock daily task
+                    req = DailyTaskTopRequest()
+                    req.setting_alchemy_count = 1
+                    req.is_check_by_term_normal_gacha = 0
+                    await next.request(req)
 
                 self._logged = True
                 break
@@ -108,3 +141,6 @@ class sessionmgr(Component[apiclient]):
             if ex.status == 3 and self.auto_relogin:
                 self._logged = False
             raise
+
+    async def clear_session(self):
+        self._logged = False

@@ -4,3 +4,4 @@ cache/
 .idea
 /ui_test.py
 /config.tdb
+!/error.log

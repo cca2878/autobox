@@ -10,11 +10,13 @@ from openpyxl.styles import Alignment
 from openpyxl.workbook import Workbook
 from openpyxl.worksheet.worksheet import Worksheet
 
+from pcrapi.bsdk.model import AccInfo
+from pcrapi.bsdk.sdkclients import bsdkclient
 from data_db import nk, config_db, result_db, acc_db, TimeUtils
 from pcrapi.core import pcrclient
-from pcrapi.db import database, dbstart
-from pcrapi.db.dbmgr import instance as dbmgr
-from pcrapi.model.requests import LoadIndexRequest
+from pcrapi.game.db import database, dbstart
+from pcrapi.game.db.dbmgr import instance as dbmgr
+from pcrapi.game.model.requests import LoadIndexRequest
 
 
 class GameData(object):
@@ -80,12 +82,11 @@ class PcrAccount(object):
 
     def _get_client(self):
         # Get Android Client
-        return pcrclient(platform={
-            'account': self._account_data['username'],
-            'password': self._account_data['password'],
-            'channel': 1,
-            'platform': 2,
-        })
+        sdkclient = bsdkclient(AccInfo(
+            acc=self._account_data['username'],
+            pwd=self._account_data['password']
+        ))
+        return pcrclient(sdkclient)
 
     async def login(self):
         try:

@@ -1,5 +1,7 @@
+from re import search
+
 from .base import Container
-from ..model.modelbase import *
+from pcrapi.game.model.modelbase import *
 from asyncio import Lock
 from typing import Tuple, TypeVar
 from msgpack import packb, unpackb
@@ -9,12 +11,11 @@ from json import loads
 from hashlib import md5
 from Crypto.Cipher import AES
 from base64 import b64encode, b64decode
-from traceback import print_exc
-from ..constants import DEFAULT_HEADERS, IOS_HEADERS, refresh_headers
+from .sdkclient import sdkclient
+from ..constants import update_app_ver, DEBUG_LOG, ERROR_LOG
 
-from re import search
+import json
 from enum import Enum
-
 
 class CuteResultCode(Enum):
     API_RESULT_SUCCESS_CODE = 1
@@ -42,31 +43,24 @@ class ApiException(Exception):
         except ValueError:
             self.result_code = result_code
 
-
 class NetworkException(Exception):
     pass
 
-
 TResponse = TypeVar('TResponse', bound=ResponseBase, covariant=True)
-
 
 class apiclient(Container["apiclient"]):
     server_time: int = 0
     viewer_id: int = 0
-    urlroot: str = 'https://l3-prod-all-gs-gzlj.bilibiligame.net/'
+    servers: list = [] #['https://l3-prod-all-gs-gzlj.bilibiligame.net/']
+    active_server: int = 0
     _requestid: str = ''
-    _sessionid: str = ''
-
-    def __init__(self, account):
+    _sessionid: str=  ''
+    def __init__(self, sdk: sdkclient):
         super().__init__()
-        platform = account
-        self._headers = {}
-        if platform == 2:
-            for key in DEFAULT_HEADERS.keys():
-                self._headers[key] = DEFAULT_HEADERS[key]
-        else:
-            for key in IOS_HEADERS.keys():
-                self._headers[key] = IOS_HEADERS[key]
+        self._headers = sdk.header()
+        self.servers = [
+            sdk.apiroot
+        ]
         self._lck = Lock()
 
     @property
@@ -76,7 +70,6 @@ class apiclient(Container["apiclient"]):
     @staticmethod
     def _createkey() -> bytes:
         return bytes([ord('0123456789abcdef'[randint(0, 15)]) for _ in range(32)])
-
     @staticmethod
     def _add_to_16(b: bytes) -> bytes:
         n = len(b) % 16
@@ -87,7 +80,6 @@ class apiclient(Container["apiclient"]):
     def _encrypt(data: bytes, key: bytes) -> bytes:
         aes = AES.new(key, AES.MODE_CBC, b'ha4nBYA2APUD6Uv1')
         return aes.encrypt(apiclient._add_to_16(data)) + key
-
     @staticmethod
     def _decrypt(data: bytes) -> Tuple[bytes, bytes]:
         data = b64decode(data.decode('utf8'))
@@ -97,7 +89,6 @@ class apiclient(Container["apiclient"]):
     @staticmethod
     def _pack(data: object, key: bytes) -> bytes:
         return apiclient._encrypt(packb(data, use_bin_type=False), key)
-
     @staticmethod
     def _unpack(data: bytes):
         dec, key = apiclient._decrypt(data)
@@ -107,8 +98,7 @@ class apiclient(Container["apiclient"]):
     def _no_null_key(obj):
         if type(obj) == dict:
             if None in obj and not [1 for k in obj if type(k) is not int and k is not None]:
-                return [apiclient._no_null_key(v1) for k1, v1 in
-                        sorted(((k, v) for k, v in obj.items() if k is not None), key=lambda x: x[0])]
+                return [apiclient._no_null_key(v1) for k1, v1 in sorted(((k, v) for k, v in obj.items() if k is not None), key=lambda x: x[0])]
             return {k: apiclient._no_null_key(v) for k, v in obj.items() if k is not None}
         elif type(obj) == list:
             return [apiclient._no_null_key(v) for v in obj]
@@ -116,17 +106,16 @@ class apiclient(Container["apiclient"]):
             return obj
 
     async def _request_internal(self, request: Request[TResponse]) -> TResponse:
-        if not request:
-            return None
+        if not request: return None
         print(f'{self.name} requested {request.__class__.__name__} at /{request.url}')
         key = apiclient._createkey()
-        request.viewer_id = b64encode(apiclient._encrypt(str(self.viewer_id).encode('utf8'), key)).decode(
-            'ascii') if request.crypted else str(self.viewer_id)
+        request.viewer_id = b64encode(apiclient._encrypt(str(self.viewer_id).encode('utf8'), key)).decode('ascii') if request.crypted else str(self.viewer_id)
 
+        urlroot = self.servers[self.active_server]
+        
         try:
-            resp = await aiorequests.post(self.urlroot + request.url,
-                                          data=apiclient._pack(request.dict(by_alias=True), key) if request.crypted else
-                                          request.json(by_alias=True).encode('utf8'), headers=self._headers, timeout=10)
+            resp = await aiorequests.post(urlroot + request.url, data=apiclient._pack(request.dict(by_alias=True), key) if request.crypted else
+                request.json(by_alias=True).encode('utf8'), headers=self._headers, timeout=10)
 
             if resp.status_code != 200:
                 raise NetworkException
@@ -141,17 +130,21 @@ class apiclient(Container["apiclient"]):
 
         response1 = apiclient._no_null_key(response0)
 
-        # with open('req.log', 'a') as fp:
-        #     fp.write(json.dumps(response0))
-        #     fp.write("\n-------\n")
-        #     fp.write(json.dumps(response1))
+        if DEBUG_LOG:
+            with open('req.log', 'a') as fp:
+                fp.write(f'{self.name} requested {request.__class__.__name__} at /{request.url}\n')
+                fp.write(json.dumps(self._headers, indent=4, ensure_ascii=False) + '\n')
+                fp.write(json.dumps(json.loads(request.json(by_alias=True)), indent=4, ensure_ascii=False) + '\n')
+                fp.write(f'response from {urlroot}\n')
+                fp.write(json.dumps(dict(resp.headers), indent=4, ensure_ascii=False) + '\n')
+                fp.write(json.dumps(response0, indent=4, ensure_ascii=False) + '\n')
 
         response: Response[TResponse] = Response[cls].parse_obj(response1)
 
         # with open('req.log', 'a') as fp:
-        #    fp.write(f'{self.name} requested {request.__class__.__name__} at /{request.url}\n')
-        #    fp.write(json.dumps(json.loads(request.json(by_alias=True)), indent=4, ensure_ascii=False) + '\n')
-        #    fp.write(json.dumps(json.loads(response.json(by_alias=True)), indent=4, ensure_ascii=False) + '\n')
+           # fp.write(f'{self.name} requested {request.__class__.__name__} at /{request.url}\n')
+           # fp.write(json.dumps(json.loads(request.json(by_alias=True)), indent=4, ensure_ascii=False) + '\n')
+           # fp.write(json.dumps(json.loads(response.json(by_alias=True)), indent=4, ensure_ascii=False) + '\n')
 
         if response.data_headers.servertime:
             self.server_time = response.data_headers.servertime
@@ -170,18 +163,38 @@ class apiclient(Container["apiclient"]):
         if "check/game_start" == request.url and "store_url" in response0['data_headers']:
             version = search(r'_v?([4-9]\.\d\.\d).*?_', response0['data_headers']["store_url"]).group(1)
             self._headers['APP-VER'] = version
-            refresh_headers(version)
+            update_app_ver(version)
+            print(f"版本已更新至{version}")
             raise ApiException(f"版本已更新:{version}",
                                response.data.server_error.status,
                                response.data_headers.result_code
                                )
 
+
         if response.data.server_error and "维护" not in response.data.server_error.message:
-            print(f'pcrclient: /{request.url} api failed {response.data.server_error}')
+            print(f'pcrclient: /{request.url} api failed={response.data_headers.result_code} {response.data.server_error}')
+
+            if ERROR_LOG:
+                with open('error.log', 'a') as fp:
+                    fp.write(f'{self.name} requested {request.__class__.__name__} at /{request.url}\n')
+                    fp.write(json.dumps(self._headers, indent=4, ensure_ascii=False) + '\n')
+                    fp.write(json.dumps(json.loads(request.json(by_alias=True)), indent=4, ensure_ascii=False) + '\n')
+                    fp.write(f'response from {urlroot}\n')
+                    fp.write(json.dumps(dict(resp.headers), indent=4, ensure_ascii=False) + '\n')
+                    fp.write(json.dumps(response0, indent=4, ensure_ascii=False) + '\n')
+
+            self.active_server = (self.active_server + 1) % len(self.servers)
+            
+            #with open('error.log', 'a') as fp:
+            #   fp.write(f'{self.name} requested {request.__class__.__name__} at /{request.url}\n')
+            #   fp.write(json.dumps(self._headers, indent=4, ensure_ascii=False) + '\n')
+            #   fp.write(json.dumps(json.loads(request.json(by_alias=True)), indent=4, ensure_ascii=False) + '\n')
+            #   fp.write(json.dumps(json.loads(response.json(by_alias=True)), indent=4, ensure_ascii=False) + '\n')
+
             raise ApiException(response.data.server_error.message,
-                               response.data.server_error.status,
-                               response.data_headers.result_code
-                               )
+                response.data.server_error.status,
+                response.data_headers.result_code
+            )
         return response.data
 
     async def request(self, request: Request[TResponse]) -> TResponse:

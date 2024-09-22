@@ -1,9 +1,8 @@
 import glob, os
-from ..constants import CACHE_DIR
-from ..core.datamgr import datamgr
-from ..util import aiorequests
+from pcrapi.constants import CACHE_DIR
+from pcrapi.core.datamgr import datamgr
+from pcrapi.util import aiorequests
 import brotli
-
 
 async def db_start():
     dbs = glob.glob(os.path.join(CACHE_DIR, "db", "*.db"))
@@ -14,7 +13,6 @@ async def db_start():
         version = await do_update_database()
     await datamgr.try_update_database(version)
 
-
 async def do_update_database() -> int:
     info = f'https://redive.estertion.win/last_version_cn.json'
 
@@ -22,7 +20,7 @@ async def do_update_database() -> int:
     version = (await rsp.json())['TruthVersion']
 
     url = f'https://redive.estertion.win/db/redive_cn.db.br'
-
+    
     save_path = os.path.join(CACHE_DIR, "db", f"{version}.db")
     try:
         rsp = await aiorequests.get(url, headers={'Accept-Encoding': 'br'}, stream=True, timeout=20)
