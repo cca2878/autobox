@@ -1,6 +1,6 @@
 import base64
 from hashlib import md5 as hashlib_md5
-from traceback import print_exception
+from traceback import print_exc
 
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_v1_5
@@ -57,25 +57,25 @@ class BsdkHttp:
 
 
 class BsdkV3:
-    def __init__(self, acc_info: AccInfo, captchaVerifier=None, errlogger=print, app_key: str = None):
+    def __init__(self, acc_info: AccInfo, captchaVerifier=None, logger=print, app_key: str = None):
         self.pwd_hash = None
         self.app_key = app_key if app_key else 'fe8aac4e02f845b8ad67c427d48bfaf1'
         self.pwd_cipher = None
         self.acc_info = acc_info
         self.captchaVerifier = captchaVerifier
-        self.errlogger = errlogger
+        self.logger = logger
         self.http_client = BsdkHttp(self)
 
     @classmethod
-    async def create(cls, acc_info: AccInfo, captchaVerifier=None, errlogger=print, app_key: str = None):
-        self = cls(acc_info, captchaVerifier, errlogger, app_key)
+    async def create(cls, acc_info: AccInfo, captchaVerifier=None, logger=print, app_key: str = None):
+        self = cls(acc_info, captchaVerifier, logger, app_key)
         await self.get_config()
         return self
 
     async def get_config(self):
         req = BsdkExtConfReq()
         resp: req.resp_type = await self.http_client.req(req)
-        await host_mgr.a_set_hosts('config_login_https', resp.config_login_https.split(','))
+        host_mgr.set_hosts('config_login_https', resp.config_login_https.split(','))
         req = BsdkGetCipherV3Req()
         resp: req.resp_type = await self.http_client.req(req)
         self.pwd_hash = resp.hash
@@ -101,7 +101,7 @@ class BsdkV3:
                         vali_info = await Validator(self.http_client)
                         break
                     except Exception as e:
-                        print_exception(e)
+                        print_exc()
                         if i == n - 1:
                             raise ValueError("captcha failed")
                         continue

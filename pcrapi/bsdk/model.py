@@ -9,11 +9,17 @@ from pcrapi.util.enums import eGamePlatformId
 
 
 class HostMgr:
-    config_init: List[str] = ["https://p.biligame.com"]
-    config_login_https: List[str] = ["https://line1-sdk-center-login-sh.biligame.net",
-                                     "https://line3-sdk-center-login-sh.biligame.net",
-                                     "https://line3-login.biligame.net",
-                                     "https://line1-login.biligame.net"]
+    _data = {
+        "config_init": ["https://p.biligame.com"],
+        "config_login_https": ["https://line1-sdk-center-login-sh.biligame.net",
+                   "https://line3-sdk-center-login-sh.biligame.net",
+                   "https://line3-login.biligame.net",
+                   "https://line1-login.biligame.net"]
+        }
+    def get_host(self, host_alias):
+        return self._data[host_alias][0]
+    def set_hosts(self, host_alias, hosts):
+        self._data[host_alias] = hosts
 
 
 class AHostMgr:
@@ -25,7 +31,6 @@ class AHostMgr:
             self.lock = asyncio.Lock()
 
     def __init__(self):
-        self.loop = asyncio.new_event_loop()
         self._data = {}
         self._data.update({
             "config_init": self.HostConf(
@@ -41,34 +46,56 @@ class AHostMgr:
                        "https://line1-login.biligame.net"]
             )})
 
+    # 异步核心方法
     async def a_get_host(self, key):
         if key in self._data:
             async with self._data[key].lock:
-                return self._data[key].hosts[self._data[key].avail_host] if self._data[key].avail_host < len(
-                    self._data[key].hosts) else self._data[key].hosts[-1]
-
-    def get_host(self, key):
-        return self.loop.run_until_complete(self.a_get_host(key))
+                avail = self._data[key].avail_host
+                return self._data[key].hosts[avail] if avail < len(self._data[key].hosts) else self._data[key].hosts[-1]
 
     async def a_set_hosts(self, key, value):
         if key in self._data:
             async with self._data[key].lock:
                 self._data[key].hosts = value
 
-    def set_hosts(self, key, value):
-        return self.loop.run_until_complete(self.a_set_hosts(key, value))
-
     async def a_toggle_host(self, key):
         if key in self._data:
             async with self._data[key].lock:
                 self._data[key].avail_host = (self._data[key].avail_host + 1) % len(self._data[key].hosts)
 
+    # 同步方法包装器
+    def get_host(self, key):
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            # 没有活动事件循环时直接创建新事件循环运行
+            return asyncio.run(self.a_get_host(key))
+        else:
+            # 已在事件循环中运行时使用线程安全方式执行
+            future = asyncio.run_coroutine_threadsafe(self.a_get_host(key), loop)
+            return future.result()  # 阻塞等待结果但避免嵌套循环问题
+
+    def set_hosts(self, key, value):
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return asyncio.run(self.a_set_hosts(key, value))
+        else:
+            future = asyncio.run_coroutine_threadsafe(self.a_set_hosts(key, value), loop)
+            return future.result()
+
     def toggle_host(self, key):
-        return self.loop.run_until_complete(self.a_toggle_host(key))
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return asyncio.run(self.a_toggle_host(key))
+        else:
+            future = asyncio.run_coroutine_threadsafe(self.a_toggle_host(key), loop)
+            return future.result()
 
 
-host_mgr = AHostMgr()
-
+# host_mgr = AHostMgr()
+host_mgr = HostMgr()
 
 @dataclass
 class ApiInfo:

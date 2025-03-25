@@ -11,7 +11,7 @@ class bsdkclient(sdkclient):
         self.initialized = False
 
     async def initialize(self):
-        self._bsdk = await BsdkV3.create(self._account, self.captchaVerifier, self.errlogger)
+        self._bsdk = await BsdkV3.create(self._account, self.captchaVerifier, self.logger)
         self.initialized = True
 
     @property
@@ -27,9 +27,9 @@ class bsdkclient(sdkclient):
         while True:
             code, msg, info = await (await self.sdk).login()
             if code == 0:
-                await self.errlogger("geetest or captcha succeed")
+                self.logger.info("geetest or captcha succeed")
                 break
-            await self.errlogger(msg)
+            self.logger.error(msg)
             raise PanicError(msg)
         return info
 

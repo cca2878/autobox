@@ -9,12 +9,9 @@ from ..util.enums import eGamePlatformId
 from ..util.logger import instance as logger
 
 
-async def _defaultLogger(msg):
-    print(msg)
-
 class sdkclient:
-    
-    def __init__(self, info: AccInfo, captchaVerifier=Validator, errlogger=_defaultLogger):
+
+    def __init__(self, info: AccInfo, captchaVerifier=Validator, logger=logger):
         self.captchaVerifier = captchaVerifier
         self.logger = logger
         if info.platform == eGamePlatformId.Android:

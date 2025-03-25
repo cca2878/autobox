@@ -28,6 +28,13 @@ class database():
         
         with dbmgr.session() as db:
 
+            # !!! Custom Code !!!
+            self.unlock_unit_dict: Dict[int, UnitDatum] = (
+                UnlockUnitCondition.query(db)
+                .to_dict(lambda x: x.unit_id, lambda x: x)
+            )
+            # !!! Custom Code !!!
+
             self.redeem_unit: Dict[int, Dict[int, RedeemUnit]] = (
                 RedeemUnit.query(db)
                 .group_by(lambda x: x.unit_id)
