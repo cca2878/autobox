@@ -1,10 +1,11 @@
 #type: ignore
-from typing import List, Callable
+from typing import List
 from pcrapi.util import aiorequests
 from pcrapi.constants import CACHE_DIR
 import os
 import pydantic.v1 as pydantic
 import UnityPy
+from pcrapi.util.logger import instance as logger
 
 class content(pydantic.BaseModel):
     url: str = None
@@ -72,8 +73,8 @@ class assetmgr:
         cacheFile = os.path.join(CACHE_DIR, 'manifest', f'{ver}.json')
         try:
             self.root = content.parse_file(cacheFile)
-            
-            print(f'manifest version {ver} loaded from cache')
+
+            logger.info(f'manifest version {ver} loaded from cache')
         except:
             self.root = content(
                 url='manifest/manifest_assetmanifest',

@@ -223,7 +223,7 @@ class Consumer(QObject):
             self._emit_status_signal(_item['acc'], 'Login...')
             ret_val = await _acc_obj.login()
             if ret_val[0] != 0:
-                self._emit_status_signal(_item['acc'], f'Err {ret_val[0]}: {ret_val[1]}', Qt.red)
+                self._emit_status_signal(_item['acc'], f'Err {ret_val[0]}: {ret_val[1]}', Qt.GlobalColor.red)
                 self._queue.task_done()
                 continue
             # await _acc_obj.login()
@@ -233,7 +233,7 @@ class Consumer(QObject):
             result_db.db.remove(_query.acc == _item['acc'])
             result_db.db.upsert(_sum, _query.acc == _item['acc'])
             self.time_signal.emit(_item['acc'], TimeUtils.obj_localtime(_sum['time']).strftime("%Y-%m-%d %H:%M:%S"))
-            self._emit_status_signal(_item['acc'], 'Complete!', Qt.green)
+            self._emit_status_signal(_item['acc'], 'Complete!', Qt.GlobalColor.green)
             # results.append(_sum)
             # 任务完成
             self._queue.task_done()

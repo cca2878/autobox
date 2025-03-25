@@ -7,10 +7,8 @@ class AbortError(Exception):
 class PanicError(Exception): 
     pass
 
-
 class AccountException(Exception):
     pass
-
 
 class UserException(Exception):
     pass

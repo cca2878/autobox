@@ -39,9 +39,9 @@ class MainWindowUi(Ui_MainWindow, QMainWindow):
     def _startup(self):
         @Slot(int)
         def raw_check_bind(state):
-            if state == Qt.Checked.value:
+            if state == Qt.CheckState.Checked.value:
                 self.btnSelectU.setDisabled(True)
-            elif state == Qt.Unchecked.value:
+            elif state == Qt.CheckState.Unchecked.value:
                 self.btnSelectU.setDisabled(False)
 
         self.checkBoxRaw.stateChanged.connect(raw_check_bind)
@@ -65,13 +65,13 @@ class MainWindowUi(Ui_MainWindow, QMainWindow):
                 # 创建一个QMessageBox实例
                 message_box = QMessageBox(self)
                 message_box.setText(text)
-                message_box.setStandardButtons(QMessageBox.Ok)
+                message_box.setStandardButtons(QMessageBox.StandardButton.Ok)
                 if status:
                     message_box.setWindowTitle("Export Success!")
-                    message_box.setIcon(QMessageBox.Information)
+                    message_box.setIcon(QMessageBox.Icon.Information)
                 else:
                     message_box.setWindowTitle("Export Failed!")
-                    message_box.setIcon(QMessageBox.Critical)
+                    message_box.setIcon(QMessageBox.Icon.Critical)
                 message_box.exec()
                 # self._set_components_status(True)
 
@@ -83,19 +83,19 @@ class MainWindowUi(Ui_MainWindow, QMainWindow):
                 self._exporter.start()
 
             if config_db.main_config_db.query(name='only_export_json', default=False):
-                file_dialog.setFileMode(QFileDialog.Directory)
-                file_dialog.setOption(QFileDialog.ShowDirsOnly)
+                file_dialog.setFileMode(QFileDialog.FileMode.Directory)
+                file_dialog.setOption(QFileDialog.Option.ShowDirsOnly)
 
-                if file_dialog.exec() == QFileDialog.Accepted:
+                if file_dialog.exec() == QFileDialog.DialogCode.Accepted:
                     print(file_dialog.selectedFiles()[0])
                     self._exporter = AsyncExporter(file_dialog.selectedFiles()[0], json_only=True)
                     start_export()
 
             else:
-                file_dialog.setAcceptMode(QFileDialog.AcceptSave)
+                file_dialog.setAcceptMode(QFileDialog.AcceptMode.AcceptSave)
                 file_dialog.setNameFilter('Excel Workbook (*.xlsx)')
 
-                if file_dialog.exec() == QFileDialog.Accepted:
+                if file_dialog.exec() == QFileDialog.DialogCode.Accepted:
                     print(file_dialog.selectedFiles()[0])
                     self._exporter = AsyncExporter(file_dialog.selectedFiles()[0],
                                                    mode=bool(self.checkBoxSep.checkState().value))
@@ -105,9 +105,9 @@ class MainWindowUi(Ui_MainWindow, QMainWindow):
 
         @Slot(int, str)
         def raw_check_save(state, name: str):
-            if state == Qt.Checked.value:
+            if state == Qt.CheckState.Checked.value:
                 config_db.main_config_db.update(name=name, value=True)
-            elif state == Qt.Unchecked.value:
+            elif state == Qt.CheckState.Unchecked.value:
                 config_db.main_config_db.update(name=name, value=False)
 
         self.checkBoxRaw.stateChanged.connect(lambda x: raw_check_save(x, 'only_export_json'))
@@ -143,7 +143,7 @@ class MainWindowUi(Ui_MainWindow, QMainWindow):
         def _show_edit_dialog():
             @Slot(int)
             def edit_dialog_finished(result):
-                if result == QDialog.Accepted:
+                if result == QDialog.DialogCode.Accepted:
                     self._load()
                     if not self.tableWidget.rowCount() == 0:
                         self.btnStart.setEnabled(True)
@@ -197,7 +197,8 @@ class MainWindowUi(Ui_MainWindow, QMainWindow):
             self.btnStart.setEnabled(False)
         self.tableWidget.clearContents()
         self.tableWidget.setRowCount(0)
-        self.tableWidget.horizontalHeader().setSectionResizeMode(self._col_idx['index'], QHeaderView.ResizeToContents)
+        self.tableWidget.horizontalHeader().setSectionResizeMode(self._col_idx['index'],
+                                                                 QHeaderView.ResizeMode.ResizeToContents)
 
         accounts = acc_db.db.all()
         _query = result_db.get_query()
@@ -310,7 +311,7 @@ class EditDialogUi(Ui_editDialog, QDialog):
         def _ok(self):
             self.accept()
             self.import_signal.emit(self._process(),
-                                    True if self.checkBoxOverwrite.checkState().value == Qt.Checked.value else False)
+                                    True if self.checkBoxOverwrite.checkState().value == Qt.CheckState.Checked.value else False)
 
         def _process(self):
             lines = self.editImport.toPlainText().split("\n")
@@ -527,14 +528,14 @@ class SelectUnitsDialogUi(Ui_selectUnitDialog, QDialog):
             item = self.UnitListWidgetItem(
                 (k, _nicknames[k], all_units[k])) if k in _nicknames.keys() else self.UnitListWidgetItem(
                 (k, all_units[k]))
-            item.setFlags(item.flags() | Qt.ItemIsDragEnabled)
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsDragEnabled)
             self.listUnS.addItem(item)
             # self._unselected_items.add(item)
         for k in selected_units:
             item = self.UnitListWidgetItem(
                 (k, _nicknames[k], all_units[k])) if k in _nicknames.keys() else self.UnitListWidgetItem(
                 (k, all_units[k]))
-            item.setFlags(item.flags() | Qt.ItemIsDragEnabled)
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsDragEnabled)
             self.listS.addItem(item)
             # self._selected_items.add(item)
 

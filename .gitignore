@@ -5,3 +5,4 @@ cache/
 /ui_test.py
 /config.tdb
 !/error.log
+log/

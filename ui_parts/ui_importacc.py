@@ -3,16 +3,21 @@
 ################################################################################
 ## Form generated from reading UI file 'import_acc.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.5.3
+## Created by: Qt User Interface Compiler version 6.7.3
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
 
-from PySide6.QtCore import (QCoreApplication, QMetaObject, Qt)
-from PySide6.QtWidgets import (QAbstractScrollArea, QCheckBox,
-                               QDialogButtonBox, QLabel, QPlainTextEdit,
-                               QVBoxLayout)
-
+from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
+                            QMetaObject, QObject, QPoint, QRect,
+                            QSize, QTime, QUrl, Qt)
+from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
+                           QFont, QFontDatabase, QGradient, QIcon,
+                           QImage, QKeySequence, QLinearGradient, QPainter,
+                           QPalette, QPixmap, QRadialGradient, QTransform)
+from PySide6.QtWidgets import (QAbstractButton, QAbstractScrollArea, QApplication, QCheckBox,
+                               QDialog, QDialogButtonBox, QLabel, QPlainTextEdit,
+                               QSizePolicy, QVBoxLayout, QWidget)
 
 class Ui_importAccDialog(object):
     def setupUi(self, importAccDialog):
@@ -47,12 +52,12 @@ class Ui_importAccDialog(object):
 
         self.verticalLayout.addWidget(self.buttonBox)
 
+
         self.retranslateUi(importAccDialog)
         self.buttonBox.accepted.connect(importAccDialog.accept)
         self.buttonBox.rejected.connect(importAccDialog.reject)
 
         QMetaObject.connectSlotsByName(importAccDialog)
-
     # setupUi
 
     def retranslateUi(self, importAccDialog):
@@ -66,3 +71,4 @@ class Ui_importAccDialog(object):
         self.editImport.setPlaceholderText(
             QCoreApplication.translate("importAccDialog", u"username|password[|alias]", None))
     # retranslateUi
+

@@ -3,17 +3,23 @@
 ################################################################################
 ## Form generated from reading UI file 'autobox.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.5.3
+## Created by: Qt User Interface Compiler version 6.7.3
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
 
-from PySide6.QtCore import (QCoreApplication, QMetaObject, QRect,
-                            QSize)
-from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QGroupBox,
-                               QHBoxLayout, QLabel, QPushButton, QSizePolicy, QSpinBox, QStatusBar,
+from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
+                            QMetaObject, QObject, QPoint, QRect,
+                            QSize, QTime, QUrl, Qt)
+from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
+                           QFont, QFontDatabase, QGradient, QIcon,
+                           QImage, QKeySequence, QLinearGradient, QPainter,
+                           QPalette, QPixmap, QRadialGradient, QTransform)
+from PySide6.QtWidgets import (QAbstractItemView, QApplication, QCheckBox, QGroupBox,
+                               QHBoxLayout, QHeaderView, QLabel, QMainWindow,
+                               QPushButton, QSizePolicy, QSpinBox, QStatusBar,
                                QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
-
+import main_res_rc
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -28,7 +34,7 @@ class Ui_MainWindow(object):
         self.horizontalLayout.setObjectName(u"horizontalLayout")
         self.groupBox = QGroupBox(self.centralwidget)
         self.groupBox.setObjectName(u"groupBox")
-        sizePolicy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        sizePolicy = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.groupBox.sizePolicy().hasHeightForWidth())
@@ -37,7 +43,7 @@ class Ui_MainWindow(object):
         self.checkBoxSep = QCheckBox(self.groupBox)
         self.checkBoxSep.setObjectName(u"checkBoxSep")
         self.checkBoxSep.setGeometry(QRect(20, 70, 211, 31))
-        sizePolicy1 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         sizePolicy1.setHorizontalStretch(0)
         sizePolicy1.setVerticalStretch(0)
         sizePolicy1.setHeightForWidth(self.checkBoxSep.sizePolicy().hasHeightForWidth())
@@ -64,7 +70,7 @@ class Ui_MainWindow(object):
 
         self.verticalWidget_2 = QWidget(self.centralwidget)
         self.verticalWidget_2.setObjectName(u"verticalWidget_2")
-        sizePolicy2 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Ignored)
+        sizePolicy2 = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Ignored)
         sizePolicy2.setHorizontalStretch(0)
         sizePolicy2.setVerticalStretch(0)
         sizePolicy2.setHeightForWidth(self.verticalWidget_2.sizePolicy().hasHeightForWidth())
@@ -73,7 +79,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_2.setObjectName(u"verticalLayout_2")
         self.btnStart = QPushButton(self.verticalWidget_2)
         self.btnStart.setObjectName(u"btnStart")
-        sizePolicy3 = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        sizePolicy3 = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
         sizePolicy3.setHorizontalStretch(0)
         sizePolicy3.setVerticalStretch(0)
         sizePolicy3.setHeightForWidth(self.btnStart.sizePolicy().hasHeightForWidth())
@@ -89,7 +95,9 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_2.addWidget(self.btnOutput)
 
+
         self.horizontalLayout.addWidget(self.verticalWidget_2)
+
 
         self.verticalLayout_3.addLayout(self.horizontalLayout)
 
@@ -108,14 +116,14 @@ class Ui_MainWindow(object):
         self.tableWidget.setHorizontalHeaderItem(4, __qtablewidgetitem4)
         self.tableWidget.setObjectName(u"tableWidget")
         self.tableWidget.setEnabled(True)
-        sizePolicy4 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+        sizePolicy4 = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
         sizePolicy4.setHorizontalStretch(0)
         sizePolicy4.setVerticalStretch(0)
         sizePolicy4.setHeightForWidth(self.tableWidget.sizePolicy().hasHeightForWidth())
         self.tableWidget.setSizePolicy(sizePolicy4)
         self.tableWidget.setMinimumSize(QSize(0, 470))
         self.tableWidget.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        self.tableWidget.setProperty("showDropIndicator", False)
+        self.tableWidget.setProperty(u"showDropIndicator", False)
         self.tableWidget.setSelectionMode(QAbstractItemView.NoSelection)
         self.tableWidget.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.tableWidget.horizontalHeader().setVisible(True)
@@ -123,7 +131,7 @@ class Ui_MainWindow(object):
         self.tableWidget.horizontalHeader().setHighlightSections(True)
         self.tableWidget.horizontalHeader().setStretchLastSection(True)
         self.tableWidget.verticalHeader().setVisible(False)
-        self.tableWidget.verticalHeader().setProperty("showSortIndicator", False)
+        self.tableWidget.verticalHeader().setProperty(u"showSortIndicator", False)
         self.tableWidget.verticalHeader().setStretchLastSection(False)
 
         self.verticalLayout_3.addWidget(self.tableWidget)
@@ -141,7 +149,6 @@ class Ui_MainWindow(object):
         self.retranslateUi(MainWindow)
 
         QMetaObject.connectSlotsByName(MainWindow)
-
     # setupUi
 
     def retranslateUi(self, MainWindow):
@@ -149,7 +156,7 @@ class Ui_MainWindow(object):
         self.groupBox.setTitle(QCoreApplication.translate("MainWindow", u"Settings", None))
         self.checkBoxSep.setText(QCoreApplication.translate("MainWindow", u"Separate info&&data when export", None))
         self.btnEdit.setText(QCoreApplication.translate("MainWindow", u"Edit accounts...", None))
-        self.btnEdit.setProperty("test", QCoreApplication.translate("MainWindow", u"abc", None))
+        self.btnEdit.setProperty(u"test", QCoreApplication.translate("MainWindow", u"abc", None))
         self.labelThreads.setText(QCoreApplication.translate("MainWindow", u"Threads:", None))
         self.btnSelectU.setText(QCoreApplication.translate("MainWindow", u"Select Units...", None))
         self.checkBoxRaw.setText(QCoreApplication.translate("MainWindow", u"Only export raw data json", None))
@@ -166,3 +173,4 @@ class Ui_MainWindow(object):
         ___qtablewidgetitem4 = self.tableWidget.horizontalHeaderItem(4)
         ___qtablewidgetitem4.setText(QCoreApplication.translate("MainWindow", u"LastTime", None));
     # retranslateUi
+

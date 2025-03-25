@@ -94,7 +94,7 @@ class flow(Iterator[T], Generic[T]):
     def _zip(self, other: Iterable[T2]) -> Iterator[Tuple[T, T2]]:
         other_iter = iter(other)
         for item in self.iterable:
-            yield item, next(other_iter)
+            yield (item, next(other_iter))
     
     def zip(self, other: Iterable[T2]) -> 'flow[Tuple[T, T2]]':
         return flow(self._zip(other))

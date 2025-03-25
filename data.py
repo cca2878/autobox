@@ -5,15 +5,16 @@ import traceback
 from re import sub as re_sub
 from typing import Union
 
-import openpyxl
 from openpyxl.styles import Alignment
+from openpyxl.utils.cell import get_column_letter
 from openpyxl.workbook import Workbook
 from openpyxl.worksheet.worksheet import Worksheet
 
+from data_db import nk, config_db, result_db, acc_db, TimeUtils
 from pcrapi.bsdk.model import AccInfo
 from pcrapi.bsdk.sdkclients import bsdkclient
-from data_db import nk, config_db, result_db, acc_db, TimeUtils
-from pcrapi.core import pcrclient
+from pcrapi.core import clientpool
+from pcrapi.core.clientpool import instance as clientpool, PoolClientWrapper
 from pcrapi.game.db import database, dbstart
 from pcrapi.game.db.dbmgr import instance as dbmgr
 from pcrapi.game.model.requests import LoadIndexRequest
@@ -78,18 +79,25 @@ class PcrAccount(object):
         self._time = ''
         self._user_json = ''
         self._account_data = {'username': username, 'password': password}
-        self._client = self._get_client()
+        self._client = None
 
-    def _get_client(self):
-        # Get Android Client
-        sdkclient = bsdkclient(AccInfo(
+    # def _get_client(self):
+    #     # Get Android Client
+    #     sdkclient = bsdkclient(AccInfo(
+    #         acc=self._account_data['username'],
+    #         pwd=self._account_data['password']
+    #     ))
+    #     return pcrclient(sdkclient)
+    async def _get_android_client(self) -> PoolClientWrapper:
+        return await clientpool.get_client(bsdkclient(AccInfo(
             acc=self._account_data['username'],
             pwd=self._account_data['password']
-        ))
-        return pcrclient(sdkclient)
+        )))
 
     async def login(self):
         try:
+            if self._client is None:
+                self._client = await self._get_android_client()
             await self._client.login()
             await self._request_json()
             # self._time = datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
@@ -208,7 +216,7 @@ class ExcelExporter(object):
                 if not sep_mode:
                     cnt_index[item[0]] = col
                 else:
-                    _ws.column_dimensions[openpyxl.utils.get_column_letter(col)].width = 5
+                    _ws.column_dimensions[get_column_letter(col)].width = 5
             # def _info_sheet(_ws: Worksheet, cnt_index: dict, header_row: int = 2):
             #     # ws: Worksheet = wb.create_sheet(title=self._1_name, index=0)
             #     for i, item in enumerate(_info_headers, start=1):
@@ -278,7 +286,7 @@ class ExcelExporter(object):
                 for j, item2 in enumerate(headers):
                     col2 = col1 + j
                     _ws.cell(row=2, column=col2, value=str(item2[1]))
-                    _ws.column_dimensions[openpyxl.utils.get_column_letter(col2)].width = 11.5
+                    _ws.column_dimensions[get_column_letter(col2)].width = 11.5
                     cnt_index[item1][item2[0]] = col2
 
         if self._mode:

@@ -14,8 +14,24 @@ CONSTANTS_PATH = os.path.join(ROOT_DIR, config['path']['constants'])
 with open(CONSTANTS_PATH, 'r', encoding='utf-8') as f:
     constants = yaml.load(f)
 
-LOG_LEVEL = config['log_level']
+###
+# CRITICAL = 50
+# FATAL = CRITICAL
+# ERROR = 40
+# WARNING = 30
+# WARN = WARNING
+# INFO = 20
+# DEBUG = 10
+# NOTSET = 0
+###
 
+LOG_LEVEL = int(config['log_level'])
+
+CLIENT_POOL_SIZE_MAX = 100
+CLIENT_POOL_MAX_AGE = 3600 * 24
+CLIENT_POOL_MAX_CLIENT_ALIVE = 10
+SESSION_ERROR_MAX_RETRY = 2
+MAX_API_RUNNING = 8
 
 BSDK = '官服'
 QSDK = '渠道服'
@@ -31,6 +47,8 @@ DATA_DIR = os.path.join(ROOT_DIR, config['path']['data'])
 CONFIG_PATH = os.path.join(CACHE_DIR, config['path']['config'])
 OLD_CONFIG_PATH = os.path.join(ROOT_DIR, config['path']['old_config'])
 AUTH_KEY = config['auth_key']
+
+LOG_PATH = os.path.join(ROOT_DIR, 'log/')
 
 DEFAULT_HEADERS = dict(constants['headers']['android'])
 IOS_HEADERS = dict(constants['headers']['ios'])

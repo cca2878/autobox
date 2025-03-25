@@ -1,7 +1,7 @@
 from .bsdkv3 import BsdkV3
-from pcrapi.util.error import PanicError
+from pcrapi.game.model.error import PanicError
 from ..core.sdkclient import sdkclient
-from ..constants import BSDK, QSDK
+from ..constants import BSDK
 
 
 class bsdkclient(sdkclient):

@@ -5,51 +5,41 @@ from pcrapi.game.model.modelbase import *
 from asyncio import Lock
 from typing import Tuple, TypeVar
 from msgpack import packb, unpackb
-from ..util import aiorequests
+from ..util import aiorequests, freqlimiter
 from random import randint
 from json import loads
 from hashlib import md5
 from Crypto.Cipher import AES
 from base64 import b64encode, b64decode
 from .sdkclient import sdkclient
-from ..constants import update_app_ver, DEBUG_LOG, ERROR_LOG
-
+from ..constants import update_app_ver, DEBUG_LOG, MAX_API_RUNNING
+import time, datetime
 import json
-from enum import Enum
-
-class CuteResultCode(Enum):
-    API_RESULT_SUCCESS_CODE = 1
-    RESULT_CODE_MAINTENANCE_COMMON = 101
-    RESULT_CODE_SERVER_ERROR = 102
-    API_RESULT_SESSION_ERROR = 201
-    RESULT_CODE_ACCOUNT_BLOCK_ERROR = 203
-    API_RESULT_VERSION_ERROR = 204
-    RESULT_CODE_PROCESSED_ERROR = 213
-    RESULT_CODE_DMM_ONETIMETOKEN_EXPIRED = 318
-    API_RESULT_APPRES_VERSION_ERROR = 217
-    API_RESULT_REQUEST_DECODE_ERROR = 218
-    API_RESULT_RESPONSE_DECODE_ERROR = 219
-    RESULT_CODE_MAINTENANCE_FROM = 2700
-    RESULT_CODE_MAINTENANCE_TO = 2999
-
+from ..util.logger import instance as logger
 
 class ApiException(Exception):
 
     def __init__(self, message, status, result_code):
         super().__init__(message)
         self.status = status
-        try:
-            self.result_code = CuteResultCode(result_code)
-        except ValueError:
-            self.result_code = result_code
+        self.result_code = result_code
 
 class NetworkException(Exception):
     pass
 
 TResponse = TypeVar('TResponse', bound=ResponseBase, covariant=True)
 
+
+class staticproperty:
+    def __init__(self, func):
+        self.fget = func
+
+    def __get__(self, instance, owner):
+        return self.fget()
+
 class apiclient(Container["apiclient"]):
-    server_time: int = 0
+    _server_time: int = 0
+    _local_time: float = 0.0
     viewer_id: int = 0
     servers: list = [] #['https://l3-prod-all-gs-gzlj.bilibiligame.net/']
     active_server: int = 0
@@ -63,9 +53,19 @@ class apiclient(Container["apiclient"]):
         ]
         self._lck = Lock()
 
+    # noinspection PyMethodParameters
+    @staticproperty
+    def time() -> int:
+        return int(time.time() - apiclient._local_time + apiclient._server_time)
+
+    # noinspection PyMethodParameters
+    @staticproperty
+    def datetime() -> datetime.datetime:
+        return datetime.datetime.fromtimestamp(apiclient.time)
+
     @property
-    def name(self) -> str:
-        return 'undefined'
+    def user_name(self) -> str:
+        ...
 
     @staticmethod
     def _createkey() -> bytes:
@@ -105,9 +105,10 @@ class apiclient(Container["apiclient"]):
         else:
             return obj
 
+    @freqlimiter.RunningLimiter(MAX_API_RUNNING)
     async def _request_internal(self, request: Request[TResponse]) -> TResponse:
         if not request: return None
-        print(f'{self.name} requested {request.__class__.__name__} at /{request.url}')
+        logger.info(f'{self.user_name} requested {request.__class__.__name__} at /{request.url}')
         key = apiclient._createkey()
         request.viewer_id = b64encode(apiclient._encrypt(str(self.viewer_id).encode('utf8'), key)).decode('ascii') if request.crypted else str(self.viewer_id)
 
@@ -121,6 +122,7 @@ class apiclient(Container["apiclient"]):
                 raise NetworkException
 
             response0 = await resp.content
+            apiclient._local_time = time.time()
 
             response0 = apiclient._unpack(response0)[0] if request.crypted else loads(response0)
         except:
@@ -132,7 +134,7 @@ class apiclient(Container["apiclient"]):
 
         if DEBUG_LOG:
             with open('req.log', 'a') as fp:
-                fp.write(f'{self.name} requested {request.__class__.__name__} at /{request.url}\n')
+                fp.write(f'{self.user_name} requested {request.__class__.__name__} at /{request.url}\n')
                 fp.write(json.dumps(self._headers, indent=4, ensure_ascii=False) + '\n')
                 fp.write(json.dumps(json.loads(request.json(by_alias=True)), indent=4, ensure_ascii=False) + '\n')
                 fp.write(f'response from {urlroot}\n')
@@ -147,7 +149,9 @@ class apiclient(Container["apiclient"]):
            # fp.write(json.dumps(json.loads(response.json(by_alias=True)), indent=4, ensure_ascii=False) + '\n')
 
         if response.data_headers.servertime:
-            self.server_time = response.data_headers.servertime
+            apiclient._server_time = response.data_headers.servertime
+        else:
+            apiclient._server_time = apiclient._local_time
 
         if response.data_headers.sid:
             t = md5()
@@ -164,32 +168,29 @@ class apiclient(Container["apiclient"]):
             version = search(r'_v?([4-9]\.\d\.\d).*?_', response0['data_headers']["store_url"]).group(1)
             self._headers['APP-VER'] = version
             update_app_ver(version)
-            print(f"版本已更新至{version}")
+            logger.info(f"版本已更新至{version}")
             raise ApiException(f"版本已更新:{version}",
                                response.data.server_error.status,
                                response.data_headers.result_code
                                )
 
-
-        if response.data.server_error and "维护" not in response.data.server_error.message:
-            print(f'pcrclient: /{request.url} api failed={response.data_headers.result_code} {response.data.server_error}')
-
-            if ERROR_LOG:
-                with open('error.log', 'a') as fp:
-                    fp.write(f'{self.name} requested {request.__class__.__name__} at /{request.url}\n')
-                    fp.write(json.dumps(self._headers, indent=4, ensure_ascii=False) + '\n')
-                    fp.write(json.dumps(json.loads(request.json(by_alias=True)), indent=4, ensure_ascii=False) + '\n')
-                    fp.write(f'response from {urlroot}\n')
-                    fp.write(json.dumps(dict(resp.headers), indent=4, ensure_ascii=False) + '\n')
-                    fp.write(json.dumps(response0, indent=4, ensure_ascii=False) + '\n')
+        if response.data.server_error:
+            logger.error(
+                f'pcrclient: /{request.url} api failed={response.data_headers.result_code} {response.data.server_error}')
+            logger.error(f'{self.user_name} requested {request.__class__.__name__} at /{request.url}\n')
+            logger.error(json.dumps(self._headers, indent=4, ensure_ascii=False) + '\n')
+            logger.error(json.dumps(json.loads(request.json(by_alias=True)), indent=4, ensure_ascii=False) + '\n')
+            logger.error(f'response from {urlroot}\n')
+            logger.error(json.dumps(dict(resp.headers), indent=4, ensure_ascii=False) + '\n')
+            logger.error(json.dumps(response0, indent=4, ensure_ascii=False) + '\n')
 
             self.active_server = (self.active_server + 1) % len(self.servers)
-            
-            #with open('error.log', 'a') as fp:
-            #   fp.write(f'{self.name} requested {request.__class__.__name__} at /{request.url}\n')
-            #   fp.write(json.dumps(self._headers, indent=4, ensure_ascii=False) + '\n')
-            #   fp.write(json.dumps(json.loads(request.json(by_alias=True)), indent=4, ensure_ascii=False) + '\n')
-            #   fp.write(json.dumps(json.loads(response.json(by_alias=True)), indent=4, ensure_ascii=False) + '\n')
+
+            if "维护" in response.data.server_error.message:
+                try:
+                    response.data.server_error.message = response.data.maintenance_message
+                except:
+                    pass
 
             raise ApiException(response.data.server_error.message,
                 response.data.server_error.status,

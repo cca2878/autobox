@@ -1,40 +1,74 @@
-from pcrapi.game.model.requests import *
+from pcrapi.game.model.models import *
 from .apiclient import apiclient
 from .sdkclient import sdkclient
 from .sessionmgr import sessionmgr
-from .misc import errorhandler
+from .misc import errorhandler, mutexhandler
 from .datamgr import datamgr
 from pcrapi.game.db.database import db
-from typing import Tuple, Union
+from typing import Callable, Tuple, Union
 import typing, math
+from collections import Counter
 
-from ..game.model.custom import ItemType, GachaReward
-from ..util.error import *
 
+class eLoginStatus(Enum):
+    NOT_LOGGED = 0
+    LOGGED = 1
+    NEED_REFRESH = 2
 
 class pcrclient(apiclient):
-    def __init__(self, sdk: sdkclient, *args, **kwargs):
+    def __init__(self, sdk: sdkclient):
+        self._base_keys = {}
+        self._keys = {}
         super().__init__(sdk)
-        self.keys = {}
         self.data = datamgr()
-        self.session = sessionmgr(sdk, *args, **kwargs)
+        self.session = sessionmgr(sdk)
         self.register(errorhandler())
         self.register(self.data)
         self.register(self.session)
-    
-    @property
-    def name(self) -> str:
-        return self.data.name
+        self.register(mutexhandler())
+
+    def set_config(self, config: dict):
+        self._base_keys = config
+        self._keys = {}
 
     @property
-    def logged(self):
-        return self.session._logged
+    def id(self) -> str:
+        return self.session.id
+
+    @property
+    def user_name(self) -> str:
+        return self.data.user_name
+
+    @property
+    def logged(self) -> eLoginStatus:
+        if not self.session._logged:
+            return eLoginStatus.NOT_LOGGED
+        else:
+            return eLoginStatus.LOGGED
 
     async def login(self):
         await self.request(None)
 
     async def logout(self):
         await self.session.clear_session()
+        self.need_refresh = False
+
+    async def support_unit_get_setting(self):
+        req = SupportUnitGetSettingRequest()
+        return await self.request(req)
+
+    async def support_unit_change_setting(self, support_type: int, position: int, action: int, unit_id: int):
+        req = SupportUnitChangeSettingRequest()
+        req.support_type = support_type
+        req.position = position
+        req.action = action
+        req.unit_id = unit_id
+        return await self.request(req)
+
+    async def item_recycle_ex(self, consume_ex_serial_id_list: List[int]):
+        req = ItemRecycleExtraEquipRequest()
+        req.consume_ex_serial_id_list = consume_ex_serial_id_list
+        return await self.request(req)
 
     async def season_ticket_new_index(self, season_id: int):
         req = SeasonPassIndexRequest()
@@ -54,14 +88,126 @@ class pcrclient(apiclient):
         req.mission_id = mission_id
         return await self.request(req)
 
-    async def deck_update(self, deck_number: int, units: List[int], sorted: bool = False):
+    async def unit_unlock_redeem_unit(self, unit_id: int):
+        req = RedeemUnitUnlockRequest()
+        req.unit_id = unit_id
+        return await self.request(req)
+
+    async def unit_register_item(self, unit_id: int, slot_id: int, item: typing.Counter[ItemType],
+                                 current_register_num: int):
+        req = RedeemUnitRegisterItemRequest()
+        req.unit_id = unit_id
+        req.slot_id = slot_id
+        req.item_list = [RedeemUnitRegisterItemInfo(id=item[1], count=count) for item, count in item.items()]
+        req.current_register_num = current_register_num
+        return await self.request(req)
+
+    async def travel_top(self, travel_area_id: int, get_ex_equip_album_flag: int):
+        if not self.data.is_quest_cleared(11018001):
+            raise SkipError("探险未解锁")
+        req = TravelTopRequest()
+        req.travel_area_id = travel_area_id
+        req.get_ex_equip_album_flag = get_ex_equip_album_flag
+        return await self.request(req)
+
+    async def travel_start(self, start_travel_quest_list: List[TravelStartInfo],
+                           add_lap_travel_quest_list: List[TravelQuestAddLap],
+                           start_secret_travel_quest_list: List[SecretTravelStartInfo], action_type: eTravelStartType):
+        req = TravelStartRequest()
+        req.start_travel_quest_list = start_travel_quest_list
+        req.add_lap_travel_quest_list = add_lap_travel_quest_list
+        req.start_secret_travel_quest_list = start_secret_travel_quest_list
+        req.action_type = action_type
+        req.current_currency_num = TravelCurrentCurrencyNum(jewel=self.data.jewel.free_jewel + self.data.jewel.jewel,
+                                                            item=self.data.get_inventory(db.travel_speed_up_paper))
+        return await self.request(req)
+
+    async def travel_receive_top_event_reward(self, top_event_appear_id: int, choice_number: int):
+        req = TravelReceiveTopEventRewardRequest()
+        req.top_event_appear_id = top_event_appear_id
+        req.choice_number = choice_number
+        return await self.request(req)
+
+    async def travel_receive_all(self,
+                                 ex_auto_recycle_option: Union[TravelExtraEquipAutoRecycleOptionData, None] = None):
+        if ex_auto_recycle_option is None:
+            ex_auto_recycle_option = TravelExtraEquipAutoRecycleOptionData(rarity=[], frame=[], category=[])
+        req = TravelReceiveAllRequest()
+        req.ex_auto_recycle_option = ex_auto_recycle_option
+        return await self.request(req)
+
+    async def travel_decrease_time(self, travel_quest_id: int, travel_id: int, decrease_time_item: TravelDecreaseItem):
+        req = TravelDecreaseTimeRequest()
+        req.travel_quest_id = travel_quest_id
+        req.travel_id = travel_id
+        req.decrease_time_item = decrease_time_item
+        req.current_currency_num = TravelCurrentCurrencyNum(jewel=self.data.jewel.free_jewel + self.data.jewel.jewel,
+                                                            item=self.data.get_inventory(db.travel_speed_up_paper))
+        return await self.request(req)
+
+    async def travel_receive(self, travel_id: int,
+                             ex_auto_recycle_option: Union[TravelExtraEquipAutoRecycleOptionData, None] = None):
+        if ex_auto_recycle_option is None:
+            ex_auto_recycle_option = TravelExtraEquipAutoRecycleOptionData(rarity=[], frame=[], category=[])
+        req = TravelReceiveRequest()
+        req.travel_id = travel_id
+        req.ex_auto_recycle_option = ex_auto_recycle_option
+        return await self.request(req)
+
+    async def travel_retire(self, travel_quest_id: int, travel_id: int,
+                            ex_auto_recycle_option: Union[TravelExtraEquipAutoRecycleOptionData, None] = None):
+        if ex_auto_recycle_option is None:
+            ex_auto_recycle_option = TravelExtraEquipAutoRecycleOptionData(rarity=[], frame=[], category=[])
+        req = TravelRetireRequest()
+        req.travel_quest_id = travel_quest_id
+        req.travel_id = travel_id
+        req.ex_auto_recycle_option = ex_auto_recycle_option
+        return await self.request(req)
+
+    async def travel_update_priority_unit_list(self, unit_id_list: List[int]):
+        req = TravelUpdatePriorityUnitListRequest()
+        req.unit_id_list = unit_id_list
+        return await self.request(req)
+
+    async def is_deck_empty(self, deck_number: ePartyType):
+        return all(getattr(self.data.deck_list[deck_number], f"unit_id_{i}") == 0 for i in range(1, 6))
+
+    async def deck_update(self, deck_number: int, units: List[int]):
         req = DeckUpdateRequest()
         req.deck_number = deck_number
         cnt = len(units)
-        if not sorted:
-            units = db.deck_sort_unit(units)
+        units = db.deck_sort_unit(units)
         for i in range(1, 6):
             setattr(req, f"unit_id_{i}",units[i - 1] if i <= cnt else 0) 
+        return await self.request(req)
+
+    async def set_growth_item_unique(self, unit_id: int, item_id: int):
+        req = UnitSetGrowthItemUniqueRequest()
+        req.unit_id = unit_id
+        req.item_id = item_id
+        return await self.request(req)
+
+    async def set_my_party_tab(self, tab_number: int, tab_name: str):
+        req = SetMyPartyTabRequest()
+        req.tab_number = tab_number
+        req.tab_name = tab_name
+        return await self.request(req)
+
+    async def clear_my_party(self, tab_number: int, party_number: int):
+        return await self.set_my_party(tab_number, party_number, 0, f"队伍{party_number}", [], [])
+
+    async def set_my_party(self, tab_number: int, party_number: int, party_label_type: int, party_name: str,
+                           units: List[int], change_rarity_unit_list: List[ChangeRarityUnit]):
+        req = SetMyPartyRequest()
+        req.tab_number = tab_number
+        req.party_number = party_number
+        req.party_label_type = party_label_type
+        req.party_name = party_name
+        cnt = len(units)
+        units = db.deck_sort_unit(units)
+        for i in range(1, 6):
+            setattr(req, f"unit_id_{i}", units[i - 1] if i <= cnt else 0)
+        req.change_rarity_unit_list = change_rarity_unit_list
         return await self.request(req)
 
     async def deck_update_list(self, deck_list: List):
@@ -130,6 +276,72 @@ class pcrclient(apiclient):
         req.item_list = [InventoryInfoPost(id=item[1], type=eInventoryType.Item, count=count) for item, count in items.items()]
         return await self.request(req)
 
+    async def unique_equip_free_enhance(self, unit_id: int, equip_slot_num: int, current_enhancement_pt: int,
+                                        after_enhancement_pt: int):
+        req = EquipmentFreeMultiEnhanceUniqueRequest()
+        req.unit_id = unit_id
+        req.equip_slot_num = equip_slot_num
+        req.current_enhancement_pt = current_enhancement_pt
+        req.after_enhancement_pt = after_enhancement_pt
+        return await self.request(req)
+
+    async def equipment_rankup_unique(self, unit_id: int, equip_slot_num: int,
+                                      equip_recipe_dict: typing.Counter[ItemType],
+                                      item_recipe_dict: typing.Counter[ItemType], current_rank: int):
+        req = UniqueEquipRankupRequest()
+        req.unit_id = unit_id
+        req.equip_slot_num = equip_slot_num
+        req.equip_recipe_list = [UserEquipParameterIdCount(id=item[1], count=count) for item, count in
+                                 equip_recipe_dict.items()]
+        req.item_recipe_list = [UserEquipParameterIdCount(id=item[1], count=count) for item, count in
+                                item_recipe_dict.items()]
+        req.current_rank = current_rank
+        return await self.request(req)
+
+    async def equipment_craft_unique(self, equip_id: int, equip_recipe_dict: typing.Counter[ItemType],
+                                     item_recipe_dict: typing.Counter[ItemType], current_equip_num: int):
+        req = UniqueEquipCraftRequest()
+        req.equip_id = equip_id
+        req.equip_recipe_list = [UserEquipParameterIdCount(id=item[1], count=count) for item, count in
+                                 equip_recipe_dict.items()]
+        req.item_recipe_list = [UserEquipParameterIdCount(id=item[1], count=count) for item, count in
+                                item_recipe_dict.items()]
+        req.current_equip_num = current_equip_num
+        await self.request(req)
+
+    async def equipment_multi_enhance_unique(self, unit_id: int, equip_slot_num: int, current_gold_num: int,
+                                             craft_equip_recipe_list: List[EnhanceRecipe],
+                                             craft_item_recipe_list: List[EnhanceRecipe],
+                                             rank_up_equip_recipe_list: List[EnhanceRecipe],
+                                             rank_up_item_recipe_list: List[EnhanceRecipe],
+                                             rank_up_exp_potion_list: List[EnhanceRecipe], current_rank: int,
+                                             after_rank: int, enhancement_item_list: List[EnhanceRecipe],
+                                             current_enhancement_pt: int):  # 仅用于equipment_craft_unique紧接着调用来装备
+        req = UniqueEquipMultiEnhanceRequest()
+        req.unit_id = unit_id
+        req.equip_slot_num = equip_slot_num
+        req.current_gold_num = current_gold_num
+        req.craft_equip_recipe_list = craft_equip_recipe_list
+        req.craft_item_recipe_list = craft_item_recipe_list
+        req.rank_up_equip_recipe_list = rank_up_equip_recipe_list
+        req.rank_up_item_recipe_list = rank_up_item_recipe_list
+        req.rank_up_exp_potion_list = rank_up_exp_potion_list
+        req.current_rank = current_rank
+        req.after_rank = after_rank
+        req.enhancement_item_list = enhancement_item_list
+        req.current_enhancement_pt = current_enhancement_pt
+        return await self.request(req)
+
+    async def equipment_enhance_unique(self, unit_id: int, equip_slot_num: int, items: typing.Counter[ItemType],
+                                       current_enhancement_pt: int):
+        req = UniqueEquipEnhanceRequest()
+        req.unit_id = unit_id
+        req.equip_slot_num = equip_slot_num
+        req.item_list = [InventoryInfoPost(id=item[1], type=eInventoryType.Item, count=count) for item, count in
+                         items.items()]
+        req.current_enhancement_pt = current_enhancement_pt
+        return await self.request(req)
+
     async def equipment_free_enhance(self, unit_id: int, equip_slot_num: int, after_equip_level: int):
         req = EquipmentFreeEnhanceRequest()
         req.unit_id = unit_id
@@ -137,16 +349,16 @@ class pcrclient(apiclient):
         req.after_equip_level = after_equip_level
         return await self.request(req)
 
-    async def get_clan_battle_top(self, clan_id: int, is_first: int, current_clan_battle_coin: int):
+    async def get_clan_battle_top(self, is_first: int, current_clan_battle_coin: int):
         req = ClanBattleTopRequest()
-        req.clan_id = clan_id
+        req.clan_id = self.data.clan
         req.is_first = is_first
         req.current_clan_battle_coin = current_clan_battle_coin
         return await self.request(req)
 
-    async def get_clan_battle_support_unit_list(self, clan_id: int):
+    async def get_clan_battle_support_unit_list(self):
         req = ClanBattleSupportUnitList2Request()
-        req.clan_id = clan_id
+        req.clan_id = self.data.clan
         return await self.request(req)
 
     async def grand_arena_rank(self, limit: int, page: int):
@@ -195,6 +407,10 @@ class pcrclient(apiclient):
         req.item_info = [SendGiftData(item_id=item[1], item_num=cnt, current_item_num=self.data.get_inventory(item)) for item, cnt in cakes.items()]
         return await self.request(req)
 
+    async def gacha_special_fes(self):
+        req = GachaSpecialFesIndexRequest()
+        return await self.request(req)
+
     async def get_gacha_index(self):
         req = GachaIndexRequest()
         return await self.request(req)
@@ -219,7 +435,7 @@ class pcrclient(apiclient):
         if self.data.get_mana() >= mana:
             return True
         elif self.data.get_mana(include_bank = True) >= mana:
-            await self.draw_from_bank(mana, mana - self.data.get_mana())
+            await self.draw_from_bank(self.data.user_gold_bank_info.bank_gold, mana - self.data.get_mana())
             return True
         else:
             return False
@@ -240,6 +456,8 @@ class pcrclient(apiclient):
                 prize_memory = sorted(prize_memory, key = lambda x: -piece_demand.get(x, 0))
             item_id = prize_memory[0]
             await self.gacha_select_prize(prizegacha_id, item_id[1])
+        if target_gacha.select_pickup_slot_num == 0:
+            raise AbortError("未选择up角色")
 
         if target_gacha.exchange_id in self.data.gacha_point and  \
         self.data.gacha_point[target_gacha.exchange_id].current_point >= self.data.gacha_point[target_gacha.exchange_id].max_point:
@@ -302,8 +520,28 @@ class pcrclient(apiclient):
         await self.story_check(story_id)
         return await self.story_view(story_id)
 
+    async def put_mme_piece(self, sub_story_id: int):
+        req = SubStoryMmePutPieceRequest()
+        req.sub_story_id = sub_story_id
+        return await self.request(req)
+
+    async def read_mme_story(self, sub_story_id: int):
+        req = SubStoryMmeReadStoryRequest()
+        req.sub_story_id = sub_story_id
+        return await self.request(req)
+
+    async def read_xeh_story(self, sub_story_id: int):
+        req = SubStoryXehReadStoryRequest()
+        req.sub_story_id = sub_story_id
+        await self.request(req)
+
     async def read_lsv_story(self, sub_story_id: int):
         req = SubStoryLsvReadStoryRequest()
+        req.sub_story_id = sub_story_id
+        await self.request(req)
+
+    async def read_dsb_story(self, sub_story_id: int):
+        req = SubStoryDsbReadStoryRequest()
         req.sub_story_id = sub_story_id
         await self.request(req)
 
@@ -376,7 +614,23 @@ class pcrclient(apiclient):
         req = ShopItemListRequest()
         return await self.request(req)
 
-    async def shop_buy_item(self, shop_id, bought_list):
+    async def shop_buy(self, shop_id: int, slot_id: int, number: int, total_price: int):
+        req = ShopBuyRequest()
+        req.system_id = shop_id
+        req.slot_id = slot_id
+        req.number = number
+        req.current_currency_num = self.data.get_shop_gold(shop_id)
+        req.total_price = total_price
+        return await self.request(req)
+
+    async def shop_buy_bulk(self, shop_id, bought: typing.Counter[int]):
+        req = ShopBuyBulkRequest()
+        req.system_id = shop_id
+        req.buy_item_list = [BuyBulkBuyItemList(slot_id=item, count=cnt) for item, cnt in bought.items()]
+        req.current_currency_num = self.data.get_shop_gold(shop_id)
+        return await self.request(req)
+
+    async def shop_buy_item(self, shop_id, bought_list: List[int]):
         req = ShopBuyMultipleRequest()
         req.system_id = shop_id
         req.slot_ids = bought_list
@@ -389,9 +643,9 @@ class pcrclient(apiclient):
         req.current_currency_num = self.data.get_shop_gold(shop_id)
         return await self.request(req)
 
-    async def mission_receive(self):
+    async def mission_receive(self, type: int):
         req = MissionAcceptRequest()
-        req.type = 1
+        req.type = type
         req.buy_id = 0
         req.id = 0
         return await self.request(req)
@@ -447,7 +701,17 @@ class pcrclient(apiclient):
         req.target_viewer_id = user
         return await self.request(req)
 
+    async def shiori_mission_receive(self, event_id: int, type: int):
+        req = ShioriMissionAcceptRequest()
+        req.event_id = event_id
+        req.type = type
+        req.id = 0
+        req.buy_id = 0
+        return await self.request(req)
+
     async def get_shiori_top(self):
+        if not self.data.is_quest_cleared(11003002):
+            raise SkipError("未解锁外传")
         req = ShioriTopRequest()
         return await self.request(req)
 
@@ -536,7 +800,7 @@ class pcrclient(apiclient):
         req = ClanInfoRequest()
         req.clan_id = self.data.clan
         req.get_user_equip = 0
-        return await self.request(req)
+        return (await self.request(req))
 
     async def request_equip(self, equip_id: int, clan_id: int):
         req = EquipRequestRequest()
@@ -582,9 +846,9 @@ class pcrclient(apiclient):
         req.random_count = times
         return await self.request(req)
 
-    async def equip_get_request(self, clan_id: int, message_id: int):
+    async def equip_get_request(self, message_id: int):
         req = EquipGetRequestRequest()
-        req.clan_id = clan_id
+        req.clan_id = self.data.clan
         req.message_id = message_id
         return await self.request(req)
     
@@ -599,7 +863,7 @@ class pcrclient(apiclient):
         req.wait_interval = 3
         resp = await self.request(req)
         times = {msg.message_id : msg.create_time for msg in resp.clan_chat_message if msg.message_type == eClanChatMessageType.DONATION}
-        return (equip for equip in resp.equip_requests if times[equip.message_id] > self.server_time - 28800)
+        return (equip for equip in resp.equip_requests if times[equip.message_id] > self.time - 28800)
     
     async def recover_stamina(self, recover_count: int = 1):
         req = ShopRecoverStaminaRequest()
@@ -626,10 +890,14 @@ class pcrclient(apiclient):
         return await self.request(req)
     
     async def get_arena_info(self):
+        if not self.data.is_quest_cleared(11004006):
+            raise SkipError("未解锁竞技场")
         req = ArenaInfoRequest()
         return await self.request(req)
     
     async def get_grand_arena_info(self):
+        if not self.data.is_quest_cleared(11008015):
+            raise SkipError("未解锁公主竞技场")
         req = GrandArenaInfoRequest()
         return await self.request(req)
     
@@ -673,15 +941,47 @@ class pcrclient(apiclient):
         if gacha.prize_rarity:
             res += ' '.join([f"{db.get_gacha_prize_name(gacha_id, i)}" + f"x{cnt}" for i, cnt in gacha.prize_rarity.items()]) + '\n'
 
-        res += await self.serlize_reward(gacha.reward_list)
+        res += await self.serialize_reward_summary(gacha.reward_list)
 
         return res
-    
-    async def serlize_reward(self, reward_list: List[InventoryInfo], target: Union[ItemType, None] = None):
-        result = []
-        rewards = {}
+
+    async def serialize_reward_summary(self, reward_list: List[InventoryInfo]):
+        summary_condition = [
+            (db.is_equip, lambda x: "装备"),
+            (db.is_equip_upper, lambda x: "强化石"),
+            (db.is_equip_raw_ore, lambda x: "原矿"),
+            (db.is_exp_upper, lambda x: "经验药水"),
+            (db.is_ex_equip, lambda reward: db.get_ex_equip_rarity_name(reward.id)),
+        ]
+        summary = Counter()
+        rewards = Counter()
         for reward in reward_list:
-            if target is None or (reward.type == target[0] and reward.id == target[1]):
+            item = (reward.type, reward.id)
+            for cond, name in summary_condition:
+                if cond(item):
+                    summary[name(reward)] += reward.count
+                    break
+            else:
+                rewards[item] += reward.count
+        result = []
+        for key, value in sorted(summary.items(), key=lambda x: x[1], reverse=True):
+            result.append(f"{key}x{value}")
+        if result:
+            result = [' '.join(result)]
+        for key, value in sorted(rewards.items(), key=lambda x: x[1], reverse=True):
+            try:
+                name = db.get_inventory_name_san(key)
+            except:
+                name = f"未知物品({key})"
+            result.append(f"{name}x{value}({self.data.get_inventory(key)})")
+        return '\n'.join(result) if result else "无"
+
+    async def serlize_reward(self, reward_list: List[InventoryInfo], target: Union[ItemType, None] = None,
+                             filter: Union[None, Callable[[ItemType], bool]] = None):  # 无用
+        rewards = {}
+        for reward in reward_list or []:
+            if target and (reward.type == target[0] and reward.id == target[1]) or filter and filter(
+                    (reward.type, reward.id)) or not target and not filter:
                 if (reward.id, reward.type) not in rewards:
                     rewards[(reward.id, reward.type)] = [reward.count, reward.stock, reward]
                 else:
@@ -689,6 +989,7 @@ class pcrclient(apiclient):
                     rewards[(reward.id, reward.type)][1] = max(reward.stock, rewards[(reward.id, reward.type)][1])
         reward_item = list(rewards.values())
         reward_item = sorted(reward_item, key = lambda x: x[0], reverse = True)
+        result = []
         for value in reward_item:
             try:
                 result.append(f"{db.get_inventory_name(value[2])}x{value[0]}({value[1]})")
@@ -768,19 +1069,15 @@ class pcrclient(apiclient):
 
     async def unlock_quest_id(self, quest: int):
         return (
-            (quest in self.data.quest_dict and self.data.quest_dict[quest].clear_flg > 0) or 
-            (quest in db.tower_quest and self.data.tower_status.cleared_floor_num >= db.tower_quest[quest].floor_num)
+                (quest == 0) or
+                (quest in self.data.quest_dict and self.data.quest_dict[quest].clear_flg > 0) or
+                (quest in self.data.cleared_byway_quest_id_set) or
+                (quest in db.tower_quest and self.data.tower_status and self.data.tower_status.cleared_floor_num >=
+                 db.tower_quest[quest].floor_num)
         )
 
-    @property
-    def stamina_recover_cnt(self) -> int:
-        return self.keys.get('stamina_recover_times', 0)
-
-    def set_stamina_recover_cnt(self, value: int):
-        self.keys['stamina_recover_times'] = value
-
     async def quest_skip_aware(self, quest: int, times: int, recover: bool = False, is_total: bool = False):
-        name = db.quest_name[quest] if quest in db.quest_name else f"未知关卡{quest}"
+        name = db.get_quest_name(quest)
         if db.is_hatsune_quest(quest):
             event = db.quest_to_event[quest].event_id
             if not quest in self.data.hatsune_quest_dict[event]:
@@ -854,10 +1151,11 @@ class pcrclient(apiclient):
         req = HomeIndexRequest()
         req.message_id = 1
         req.gold_history = 0
-        req.is_first = 1
+        req.is_first = 0
         req.tips_id_list = []
         await self.request(req)
-    
+        self.need_refresh = False
+
     async def reset_dungeon(self):
         req = DungeonResetRequest()
         req.dungeon_area_id = self.data.dungeon_area_id
@@ -908,6 +1206,8 @@ class pcrclient(apiclient):
         return await self.request(req)
 
     async def room_start(self) -> RoomStartResponse:
+        if not self.data.is_quest_cleared(11002001):
+            raise SkipError("小屋未解锁")
         req = RoomStartRequest()
         req.wac_auto_option_flag = 1
         return await self.request(req)
@@ -977,32 +1277,42 @@ class pcrclient(apiclient):
         req.from_system_id = from_system_id
         return await self.request(req)
 
-    def set_stamina_consume_not_run(self):
-        self.keys['stamina_consume_not_run'] = True
+    def _get_key(self, key, default=None):
+        return self._keys.get(key, self._base_keys.get(key, default))
+
+    @property
+    def stamina_recover_cnt(self) -> int:
+        return self._get_key('stamina_recover_times', 0)
 
     def is_stamina_consume_not_run(self):
-        return self.keys.get('stamina_consume_not_run', False)
-
-    def set_stamina_get_not_run(self):
-        self.keys['stamina_get_not_run'] = True
+        return self._get_key('stamina_consume_not_run', False)
 
     def is_stamina_get_not_run(self):
-        return self.keys.get('stamina_get_not_run', False)
-
-    def set_star_cup_sweep_not_run(self):
-        self.keys['star_cup_sweep_not_run'] = True
+        return self._get_key('stamina_get_not_run', False)
 
     def is_star_cup_sweep_not_run(self):
-        return self.keys.get('star_cup_sweep_not_run', False)
-
-    def set_heart_sweep_not_run(self):
-        self.keys['heart_sweep_not_run'] = True
+        return self._get_key('star_cup_sweep_not_run', False)
 
     def is_heart_sweep_not_run(self):
-        return self.keys.get('heart_sweep_not_run', False)
-
-    def set_cron_run(self):
-        self.keys['cron_run'] = True
+        return self._get_key('heart_sweep_not_run', False)
 
     def is_cron_run(self):
-        return self.keys.get('cron_run', False)
+        return self._get_key('cron_run', False)
+
+    def set_stamina_recover_cnt(self, value: int):
+        self._keys['stamina_recover_times'] = value
+
+    def set_stamina_consume_not_run(self):
+        self._keys['stamina_consume_not_run'] = True
+
+    def set_stamina_get_not_run(self):
+        self._keys['stamina_get_not_run'] = True
+
+    def set_star_cup_sweep_not_run(self):
+        self._keys['star_cup_sweep_not_run'] = True
+
+    def set_heart_sweep_not_run(self):
+        self._keys['heart_sweep_not_run'] = True
+
+    def set_cron_run(self):
+        self._keys['cron_run'] = True

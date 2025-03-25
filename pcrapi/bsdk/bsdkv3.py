@@ -8,7 +8,7 @@ from httpx import AsyncClient, Headers
 from .model import BaseReq, BsdkExtConfReq, host_mgr, BsdkGetCipherV3Req, BsdkLoginV3Req, BsdkStartCaptchaReq, \
     BsdkStartCaptchaResp, BsdkCaptLoginV3Req, BsdkLoginV3Resp, AccInfo
 from .validator import Validator
-from ..util.error import PanicError
+from pcrapi.game.model.error import PanicError
 
 
 class BsdkHttp:

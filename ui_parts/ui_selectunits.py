@@ -3,15 +3,22 @@
 ################################################################################
 ## Form generated from reading UI file 'select_units.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.5.2
+## Created by: Qt User Interface Compiler version 6.7.3
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
 
-from PySide6.QtCore import (QCoreApplication, QMetaObject, Qt)
-from PySide6.QtWidgets import (QAbstractItemView, QDialogButtonBox, QHBoxLayout, QLabel, QLineEdit,
-                               QListWidget, QPushButton, QVBoxLayout, QWidget)
-
+from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
+                            QMetaObject, QObject, QPoint, QRect,
+                            QSize, QTime, QUrl, Qt)
+from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
+                           QFont, QFontDatabase, QGradient, QIcon,
+                           QImage, QKeySequence, QLinearGradient, QPainter,
+                           QPalette, QPixmap, QRadialGradient, QTransform)
+from PySide6.QtWidgets import (QAbstractButton, QAbstractItemView, QApplication, QDialog,
+                               QDialogButtonBox, QHBoxLayout, QLabel, QLineEdit,
+                               QListWidget, QListWidgetItem, QPushButton, QSizePolicy,
+                               QVBoxLayout, QWidget)
 
 class Ui_selectUnitDialog(object):
     def setupUi(self, selectUnitDialog):
@@ -44,6 +51,7 @@ class Ui_selectUnitDialog(object):
 
         self.vlayUnS.addWidget(self.listUnS)
 
+
         self.horizontalLayout.addLayout(self.vlayUnS)
 
         self.vlayBtn = QVBoxLayout()
@@ -68,6 +76,7 @@ class Ui_selectUnitDialog(object):
 
         self.vlayBtn.addWidget(self.btnUnSAll)
 
+
         self.horizontalLayout.addLayout(self.vlayBtn)
 
         self.vlayS = QVBoxLayout()
@@ -90,7 +99,9 @@ class Ui_selectUnitDialog(object):
 
         self.vlayS.addWidget(self.listS)
 
+
         self.horizontalLayout.addLayout(self.vlayS)
+
 
         self.verticalLayout.addLayout(self.horizontalLayout)
 
@@ -115,7 +126,6 @@ class Ui_selectUnitDialog(object):
         self.buttonBox.rejected.connect(selectUnitDialog.reject)
 
         QMetaObject.connectSlotsByName(selectUnitDialog)
-
     # setupUi
 
     def retranslateUi(self, selectUnitDialog):
@@ -123,7 +133,7 @@ class Ui_selectUnitDialog(object):
         self.labelUnS.setText(QCoreApplication.translate("selectUnitDialog", u"Unselected:", None))
         self.editSchUnS.setPlaceholderText(QCoreApplication.translate("selectUnitDialog", u"Search...", None))
         self.btnSAll.setText(QCoreApplication.translate("selectUnitDialog", u"->\n"
-                                                                            "Add all\n"
+                                                                            " Add all\n"
                                                                             "->", None))
         self.btnS.setText(QCoreApplication.translate("selectUnitDialog", u"->\n"
                                                                          "Add\n"
@@ -137,3 +147,4 @@ class Ui_selectUnitDialog(object):
         self.labelS.setText(QCoreApplication.translate("selectUnitDialog", u"Selected:", None))
         self.editSchS.setPlaceholderText(QCoreApplication.translate("selectUnitDialog", u"Search...", None))
     # retranslateUi
+

@@ -3,17 +3,22 @@
 ################################################################################
 ## Form generated from reading UI file 'manual_vali.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.5.2
+## Created by: Qt User Interface Compiler version 6.7.3
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
 
-from PySide6.QtCore import (QCoreApplication, QMetaObject, QSize)
+from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
+                            QMetaObject, QObject, QPoint, QRect,
+                            QSize, QTime, QUrl, Qt)
+from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
+                           QFont, QFontDatabase, QGradient, QIcon,
+                           QImage, QKeySequence, QLinearGradient, QPainter,
+                           QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtWidgets import (QDialogButtonBox,
-                               QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout)
-
-
+from PySide6.QtWidgets import (QAbstractButton, QApplication, QDialog, QDialogButtonBox,
+                               QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout,
+                               QWidget)
 # import validator_res_rc
 
 class Ui_MValiDialog(object):
@@ -28,7 +33,7 @@ class Ui_MValiDialog(object):
         self.horizontalLayout.setObjectName(u"horizontalLayout")
         self.label = QLabel(MValiDialog)
         self.label.setObjectName(u"label")
-        sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.MinimumExpanding)
+        sizePolicy = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.MinimumExpanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.label.sizePolicy().hasHeightForWidth())
@@ -43,11 +48,12 @@ class Ui_MValiDialog(object):
 
         self.horizontalLayout.addWidget(self.buttonBox)
 
+
         self.verticalLayout.addLayout(self.horizontalLayout)
 
         self.webEngineView = QWebEngineView(MValiDialog)
         self.webEngineView.setObjectName(u"webEngineView")
-        sizePolicy1 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
         sizePolicy1.setHorizontalStretch(0)
         sizePolicy1.setVerticalStretch(0)
         sizePolicy1.setHeightForWidth(self.webEngineView.sizePolicy().hasHeightForWidth())
@@ -59,10 +65,10 @@ class Ui_MValiDialog(object):
         self.retranslateUi(MValiDialog)
 
         QMetaObject.connectSlotsByName(MValiDialog)
-
     # setupUi
 
     def retranslateUi(self, MValiDialog):
         MValiDialog.setWindowTitle(QCoreApplication.translate("MValiDialog", u"Manual Validate", None))
         self.label.setText(QCoreApplication.translate("MValiDialog", u"Please complete the validation in 120s!", None))
     # retranslateUi
+
